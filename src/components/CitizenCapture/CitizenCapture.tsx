@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Camera, MapPin, AlertCircle, ShieldCheck, RefreshCw } from 'lucide-react';
+import { Camera, MapPin, AlertCircle, ShieldCheck, RefreshCw, Send, AlertTriangle } from 'lucide-react';
 import { useSecureCamera } from './useSecureCamera';
 import { useLocationSecure } from './useLocationSecure';
 import { initModel, captureSecurely } from './inference';
@@ -11,10 +11,14 @@ export const CitizenCapture: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [modelReady, setModelReady] = useState(false);
   const [isCapturing, setIsCapturing] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
   
   const [captureBlob, setCaptureBlob] = useState<Blob | null>(null);
   const [location, setLocation] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [confidenceScore, setConfidenceScore] = useState<number | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<string>('');
 
   // Initialize TensorFlow and Camera on mount
   useEffect(() => {
@@ -43,15 +47,18 @@ export const CitizenCapture: React.FC = () => {
 
     setIsCapturing(true);
     setError(null);
+    setSuccessMsg(null);
+    setSelectedCategory('');
 
     try {
-      // 1. Verify Geofence First (Strict security policy)
+      // 1. Verify Geofence First
       const loc = await getSecureLocation();
       setLocation(loc);
 
       // 2. Perform zero-data-leak capture & inference
-      const blob = await captureSecurely(videoRef.current, canvasRef.current);
+      const { blob, scene_confidence_score } = await captureSecurely(videoRef.current, canvasRef.current);
       setCaptureBlob(blob);
+      setConfidenceScore(scene_confidence_score);
 
       // 3. Stop camera immediately to prevent background monitoring
       stopCamera();
@@ -61,6 +68,7 @@ export const CitizenCapture: React.FC = () => {
       // Ensure we don't hold any partial state if there's an error
       setCaptureBlob(null);
       setLocation(null);
+      setConfidenceScore(null);
     } finally {
       setIsCapturing(false);
     }
@@ -69,8 +77,56 @@ export const CitizenCapture: React.FC = () => {
   const handleRetake = async () => {
     setCaptureBlob(null);
     setLocation(null);
+    setConfidenceScore(null);
     setError(null);
+    setSuccessMsg(null);
+    setSelectedCategory('');
     await startCamera();
+  };
+
+  const handleSubmit = async () => {
+    if (!location || !captureBlob || !selectedCategory || !confidenceScore) return;
+    
+    setIsSubmitting(true);
+    setError(null);
+
+    try {
+      // Create FormData (simulate uploading image securely + payload)
+      // For this step, we assume the backend just wants metadata as JSON, 
+      // but usually we'd upload the Blob to a secure S3 bucket and pass the reference.
+      // Here we just send the JSON payload to our backend route.
+      const payload = {
+        longitude: location.longitude,
+        latitude: location.latitude,
+        imageReference: 'secure_blob_reference_123', // In a real scenario, upload Blob first
+        confidence_score: confidenceScore,
+        user_category: selectedCategory
+      };
+
+      const response = await fetch('/api/tickets', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to submit report');
+      }
+
+      setSuccessMsg(`Report submitted securely! (${data.message}) Status: ${data.ticket.status}`);
+      
+      // Clear sensitive memory strictly
+      setCaptureBlob(null);
+      setLocation(null);
+      setConfidenceScore(null);
+
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -87,10 +143,17 @@ export const CitizenCapture: React.FC = () => {
         </div>
       )}
 
+      {successMsg && (
+        <div className="mb-4 p-3 bg-green-50 text-green-700 rounded-lg flex items-start gap-2">
+          <ShieldCheck className="w-5 h-5 mt-0.5 shrink-0" />
+          <p className="text-sm font-medium">{successMsg}</p>
+        </div>
+      )}
+
       {/* Hidden processing canvas */}
       <canvas ref={canvasRef} className="hidden" />
 
-      {!captureBlob ? (
+      {!captureBlob && !successMsg ? (
         <div className="relative rounded-xl overflow-hidden bg-black aspect-[3/4] flex items-center justify-center">
           <video
             ref={videoRef}
@@ -118,7 +181,7 @@ export const CitizenCapture: React.FC = () => {
             )}
           </button>
         </div>
-      ) : (
+      ) : captureBlob ? (
         <div className="flex flex-col gap-4">
           <div className="rounded-xl overflow-hidden bg-gray-100 aspect-[3/4] relative">
             <img
@@ -126,29 +189,60 @@ export const CitizenCapture: React.FC = () => {
               alt="Processed Secure Capture"
               className="w-full h-full object-cover"
             />
+            {/* Display AI Confidence Score */}
+            <div className={`absolute top-4 right-4 px-3 py-1 rounded-full text-xs font-bold text-white shadow-lg ${confidenceScore && confidenceScore < 60 ? 'bg-orange-500' : 'bg-green-500'}`}>
+              AI Confidence: {confidenceScore}%
+            </div>
           </div>
           
-          <div className="p-4 bg-green-50 rounded-lg border border-green-100 flex flex-col gap-2">
-            <div className="flex items-center gap-2 text-green-700">
-              <ShieldCheck className="w-5 h-5" />
-              <span className="font-semibold text-sm">Faces Blurred & Memory Flushed</span>
+          <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg flex flex-col gap-3">
+            <h3 className="font-semibold text-gray-800 text-sm flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4 text-orange-500" />
+              Mandatory Verification
+            </h3>
+            <p className="text-xs text-gray-500">Select the context of the situation to verify this report.</p>
+            
+            <div className="flex flex-col gap-2">
+              {['Traffic Intersection Begging', 'Hazardous Labor', 'Unattended Child'].map(cat => (
+                <label key={cat} className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${selectedCategory === cat ? 'bg-blue-50 border-blue-500' : 'bg-white border-gray-200 hover:bg-gray-50'}`}>
+                  <input 
+                    type="radio" 
+                    name="category" 
+                    value={cat}
+                    checked={selectedCategory === cat}
+                    onChange={(e) => setSelectedCategory(e.target.value)}
+                    className="w-4 h-4 text-blue-600 focus:ring-blue-500"
+                  />
+                  <span className="text-sm font-medium text-gray-700">{cat}</span>
+                </label>
+              ))}
             </div>
-            {location && (
-              <div className="flex items-center gap-2 text-gray-600 text-sm">
-                <MapPin className="w-4 h-4" />
-                <span>Delhi Verified: {location.latitude.toFixed(4)}, {location.longitude.toFixed(4)}</span>
-              </div>
-            )}
           </div>
 
-          <button
-            onClick={handleRetake}
-            className="w-full py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-lg transition-colors flex items-center justify-center gap-2"
-          >
-            <RefreshCw className="w-4 h-4" />
-            Retake Photo
-          </button>
+          <div className="flex gap-2 mt-2">
+            <button
+              onClick={handleRetake}
+              disabled={isSubmitting}
+              className="flex-1 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-lg transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+            >
+              <RefreshCw className="w-4 h-4" />
+              Retake
+            </button>
+            
+            <button
+              onClick={handleSubmit}
+              disabled={!selectedCategory || isSubmitting}
+              className="flex-1 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:bg-gray-300"
+            >
+              {isSubmitting ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+              Submit Securely
+            </button>
+          </div>
         </div>
+      ) : (
+        <button onClick={handleRetake} className="mt-8 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700">
+          Capture New Incident
+        </button>
       )}
     </div>
   );

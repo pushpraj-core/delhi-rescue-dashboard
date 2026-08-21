@@ -6,19 +6,19 @@ const router = express.Router();
 // POST /api/tickets
 router.post('/', async (req, res) => {
   try {
-    const { longitude, latitude, imageReference } = req.body;
+    const { longitude, latitude, imageReference, confidence_score, user_category } = req.body;
 
     // Basic Validation
-    if (longitude == null || latitude == null || !imageReference) {
-      return res.status(400).json({ error: 'Missing required fields: longitude, latitude, or imageReference' });
+    if (longitude == null || latitude == null || !imageReference || confidence_score == null || !user_category) {
+      return res.status(400).json({ error: 'Missing required fields: longitude, latitude, imageReference, confidence_score, or user_category' });
     }
 
-    if (typeof longitude !== 'number' || typeof latitude !== 'number') {
-      return res.status(400).json({ error: 'Longitude and latitude must be numbers' });
+    if (typeof longitude !== 'number' || typeof latitude !== 'number' || typeof confidence_score !== 'number') {
+      return res.status(400).json({ error: 'Longitude, latitude, and confidence_score must be numbers' });
     }
 
     // Call secure ingestion service
-    const result = await ingestTicket({ longitude, latitude, imageReference });
+    const result = await ingestTicket({ longitude, latitude, imageReference, confidence_score, user_category });
 
     return res.status(result.status === 'CREATED' ? 201 : 200).json({
       message: result.status === 'CREATED' ? 'New Case File Created' : 'Duplicate Ticket Updated',

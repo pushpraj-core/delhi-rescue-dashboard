@@ -26,6 +26,20 @@ const ticketSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  confidence_score: {
+    type: Number,
+    required: true
+  },
+  user_category: {
+    type: String,
+    enum: ['Traffic Intersection Begging', 'Hazardous Labor', 'Unattended Child'],
+    required: true
+  },
+  status: {
+    type: String,
+    enum: ['Pending Verification', 'High Priority', 'Rejected', 'Low-Confidence / Manual Review Required'],
+    default: 'Pending Verification'
+  },
   createdAt: {
     type: Date,
     default: Date.now,
@@ -35,7 +49,5 @@ const ticketSchema = new mongoose.Schema({
 
 // GeoJSON Index for spatial queries
 ticketSchema.index({ location: '2dsphere' });
-// Index for time window queries
-ticketSchema.index({ createdAt: 1 });
 
 module.exports = mongoose.model('Ticket', ticketSchema);

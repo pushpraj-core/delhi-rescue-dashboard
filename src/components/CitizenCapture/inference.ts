@@ -19,7 +19,7 @@ export const initModel = async (): Promise<void> => {
 export const captureSecurely = async (
   video: HTMLVideoElement,
   canvas: HTMLCanvasElement
-): Promise<Blob> => {
+): Promise<{ blob: Blob; scene_confidence_score: number }> => {
   if (!detector) {
     throw new Error('Model not initialized');
   }
@@ -38,6 +38,11 @@ export const captureSecurely = async (
   try {
     // 2. Perform inference inside tf.tidy to automatically clean up intermediate tensors
     const faces = await detector.estimateFaces(video);
+    
+    // Simulate a YOLOv8 custom model scene confidence score.
+    // In production, this would be returned directly from the edge AI model based on child features/context.
+    // For now, we simulate a score between 40 and 99.
+    const scene_confidence_score = Math.floor(Math.random() * (99 - 40 + 1) + 40);
 
     // 3. Apply Gaussian blur to each detected face region securely
     for (const face of faces) {
@@ -74,7 +79,7 @@ export const captureSecurely = async (
       );
     });
 
-    return blob;
+    return { blob, scene_confidence_score };
   } catch (error) {
     throw new Error('Secure capture failed: ' + (error as Error).message);
   } finally {
