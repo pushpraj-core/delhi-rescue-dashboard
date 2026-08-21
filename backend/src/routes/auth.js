@@ -2,6 +2,11 @@ const express = require('express');
 const { OAuth2Client } = require('google-auth-library');
 const jwt = require('jsonwebtoken');
 
+/**
+ * @route POST /api/auth/google
+ * @desc Authenticates a nodal officer using Google OAuth2 and issues a JWT session token.
+ * @access Public (Requires valid @iiitnr.edu.in email domain)
+ */
 const router = express.Router();
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
