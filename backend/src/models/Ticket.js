@@ -22,9 +22,10 @@ const ticketSchema = new mongoose.Schema({
     type: Number,
     default: 1
   },
-  imageReference: {
-    type: String,
-    required: true
+  encryptedPayload: {
+    encryptedAesKey: { type: String, required: true },
+    iv: { type: String, required: true },
+    encryptedData: { type: String, required: true }
   },
   confidence_score: {
     type: Number,

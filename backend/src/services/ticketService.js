@@ -18,7 +18,7 @@ const getDistrictForLocation = (longitude, latitude) => {
  * If duplicate, increments reportCount. Else creates new ticket.
  */
 const ingestTicket = async (ticketData) => {
-  const { longitude, latitude, imageReference, confidence_score, user_category } = ticketData;
+  const { longitude, latitude, encryptedPayload, confidence_score, user_category } = ticketData;
 
   // 1. Assign District
   const district_id = getDistrictForLocation(longitude, latitude);
@@ -70,7 +70,7 @@ const ingestTicket = async (ticketData) => {
       coordinates: [longitude, latitude]
     },
     district_id,
-    imageReference,
+    encryptedPayload,
     confidence_score,
     user_category,
     status: initialStatus
@@ -83,7 +83,13 @@ const ingestTicket = async (ticketData) => {
   };
 };
 
+const getTickets = async () => {
+  // Sort by newest first
+  return await Ticket.find().sort({ createdAt: -1 });
+};
+
 module.exports = {
   ingestTicket,
-  getDistrictForLocation
+  getDistrictForLocation,
+  getTickets
 };

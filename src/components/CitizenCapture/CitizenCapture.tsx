@@ -3,6 +3,8 @@ import { Camera, MapPin, AlertCircle, ShieldCheck, RefreshCw, Send, AlertTriangl
 import { useSecureCamera } from './useSecureCamera';
 import { useLocationSecure } from './useLocationSecure';
 import { initModel, captureSecurely } from './inference';
+import { encryptImagePayload } from '../../utils/crypto';
+import { demoPublicKey } from '../../utils/demoKeys';
 
 export const CitizenCapture: React.FC = () => {
   const { startCamera, stopCamera, videoRef, error: camError } = useSecureCamera();
@@ -91,14 +93,13 @@ export const CitizenCapture: React.FC = () => {
     setError(null);
 
     try {
-      // Create FormData (simulate uploading image securely + payload)
-      // For this step, we assume the backend just wants metadata as JSON, 
-      // but usually we'd upload the Blob to a secure S3 bucket and pass the reference.
-      // Here we just send the JSON payload to our backend route.
+      // Encrypt the Blob securely using Hybrid E2EE Encryption
+      const encryptedPayload = await encryptImagePayload(captureBlob, demoPublicKey);
+
       const payload = {
         longitude: location.longitude,
         latitude: location.latitude,
-        imageReference: 'secure_blob_reference_123', // In a real scenario, upload Blob first
+        encryptedPayload, // E2EE Payload
         confidence_score: confidenceScore,
         user_category: selectedCategory
       };

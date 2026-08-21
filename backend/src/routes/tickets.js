@@ -1,16 +1,27 @@
 const express = require('express');
-const { ingestTicket } = require('../services/ticketService');
+const { ingestTicket, getTickets } = require('../services/ticketService');
 
 const router = express.Router();
+
+// GET /api/tickets - For Authority Dashboard
+router.get('/', async (req, res) => {
+  try {
+    const tickets = await getTickets();
+    res.json({ tickets });
+  } catch (error) {
+    console.error('[Get Tickets Error]:', error.message);
+    res.status(500).json({ error: 'Failed to fetch tickets' });
+  }
+});
 
 // POST /api/tickets
 router.post('/', async (req, res) => {
   try {
-    const { longitude, latitude, imageReference, confidence_score, user_category } = req.body;
+    const { longitude, latitude, encryptedPayload, confidence_score, user_category } = req.body;
 
     // Basic Validation
-    if (longitude == null || latitude == null || !imageReference || confidence_score == null || !user_category) {
-      return res.status(400).json({ error: 'Missing required fields: longitude, latitude, imageReference, confidence_score, or user_category' });
+    if (longitude == null || latitude == null || !encryptedPayload || !encryptedPayload.encryptedAesKey || confidence_score == null || !user_category) {
+      return res.status(400).json({ error: 'Missing required fields or invalid encrypted payload' });
     }
 
     if (typeof longitude !== 'number' || typeof latitude !== 'number' || typeof confidence_score !== 'number') {
@@ -18,7 +29,7 @@ router.post('/', async (req, res) => {
     }
 
     // Call secure ingestion service
-    const result = await ingestTicket({ longitude, latitude, imageReference, confidence_score, user_category });
+    const result = await ingestTicket({ longitude, latitude, encryptedPayload, confidence_score, user_category });
 
     return res.status(result.status === 'CREATED' ? 201 : 200).json({
       message: result.status === 'CREATED' ? 'New Case File Created' : 'Duplicate Ticket Updated',
