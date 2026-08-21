@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Shield, Key, Eye, Lock, MapPin, AlertCircle, Map, LayoutDashboard, List, Activity } from 'lucide-react';
+import { Shield, Key, Eye, Lock, MapPin, AlertCircle, Map, LayoutDashboard, List, Activity, UserCheck } from 'lucide-react';
+import { GoogleLogin } from '@react-oauth/google';
 import type { EncryptedPayload } from '../../utils/crypto';
 import { decryptImagePayload } from '../../utils/crypto';
 import { demoPrivateKey } from '../../utils/demoKeys';
@@ -28,7 +29,9 @@ export const AuthorityDashboard: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
 
   const [privateKeyInput, setPrivateKeyInput] = useState(JSON.stringify(demoPrivateKey, null, 2));
+  const [isGoogleAuthenticated, setIsGoogleAuthenticated] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [googleAuthError, setGoogleAuthError] = useState<string | null>(null);
   const [decryptedImages, setDecryptedImages] = useState<Record<string, string>>({});
   const [decryptingIds, setDecryptingIds] = useState<Record<string, boolean>>({});
   const [khoyaPayaResults, setKhoyaPayaResults] = useState<Record<string, any>>({});
@@ -65,6 +68,26 @@ export const AuthorityDashboard: React.FC = () => {
       }
     } catch (e) {
       console.error('Failed to fetch hotspots', e);
+    }
+  };
+
+  const handleGoogleSuccess = async (credentialResponse: any) => {
+    try {
+      setGoogleAuthError(null);
+      const res = await fetch('/api/auth/google', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ credential: credentialResponse.credential })
+      });
+      
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Authentication failed');
+      
+      // Store the token (optional for now, as we don't strictly protect the tickets endpoint yet)
+      localStorage.setItem('gov_token', data.token);
+      setIsGoogleAuthenticated(true);
+    } catch (err: any) {
+      setGoogleAuthError(err.message);
     }
   };
 
@@ -126,14 +149,39 @@ export const AuthorityDashboard: React.FC = () => {
     }
   };
 
+  if (!isGoogleAuthenticated) {
+    return (
+      <div className="bg-dotted-paper min-h-[calc(100vh-64px)] flex flex-col justify-center items-center font-body text-[var(--ink)] pb-10">
+        <div className="w-full max-w-xl mx-auto p-8 bg-white/60 backdrop-blur-md rounded-xl border border-[var(--line)] shadow-sm text-center">
+          <UserCheck className="w-16 h-16 text-[#4285F4] mb-6 mx-auto" />
+          <h2 className="text-[24px] font-display font-bold text-[var(--ink)] mb-2 tracking-tight">Government Single Sign-On</h2>
+          <p className="text-[14px] text-[var(--ink-soft)] mb-8">
+            Please authenticate using your authorized government email account.
+          </p>
+          {googleAuthError && <div className="mb-6 p-3 border border-[rgba(162,59,46,0.2)] bg-[rgba(162,59,46,0.05)] backdrop-blur text-[var(--stamp)] rounded-xl text-[13px]">{googleAuthError}</div>}
+          
+          <div className="flex justify-center">
+            <GoogleLogin
+              onSuccess={handleGoogleSuccess}
+              onError={() => {
+                setGoogleAuthError('Google Login Failed. Please try again.');
+              }}
+              useOneTap
+            />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (!isAuthenticated) {
     return (
       <div className="bg-dotted-paper min-h-[calc(100vh-64px)] flex flex-col justify-center items-center font-body text-[var(--ink)] pb-10">
         <div className="w-full max-w-xl mx-auto p-8 bg-white/60 backdrop-blur-md rounded-xl border border-[var(--line)] shadow-sm">
           <Shield className="w-16 h-16 text-[var(--teal)] mb-6" />
-          <h2 className="text-[24px] font-display font-bold text-[var(--ink)] mb-2 tracking-tight">Secure Nodal Officer Login</h2>
+          <h2 className="text-[24px] font-display font-bold text-[var(--ink)] mb-2 tracking-tight">Secure Vault Decryption</h2>
           <p className="text-[14px] text-[var(--ink-soft)] mb-8">
-            Provide your RSA Private Key to access the E2EE Encrypted Incident Dashboard.
+            Provide your RSA Private Key to decrypt the E2EE Encrypted Incident Dashboard.
           </p>
           {error && <div className="mb-4 p-3 border border-[rgba(162,59,46,0.2)] bg-[rgba(162,59,46,0.05)] backdrop-blur text-[var(--stamp)] rounded-xl text-[13px]">{error}</div>}
           <form onSubmit={handleLogin} className="w-full flex flex-col gap-5">
@@ -145,7 +193,7 @@ export const AuthorityDashboard: React.FC = () => {
               required
             />
             <button type="submit" className="w-full py-3 bg-[var(--ink)] hover:bg-[var(--ink-soft)] text-white font-bold rounded-xl flex items-center justify-center gap-2 transition-colors shadow-sm">
-              <Key className="w-5 h-5" /> Authenticate & Access Dashboard
+              <Key className="w-5 h-5" /> Decrypt & Access Dashboard
             </button>
           </form>
         </div>
