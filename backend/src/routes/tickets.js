@@ -1,7 +1,32 @@
 const express = require('express');
 const { ingestTicket, getTickets } = require('../services/ticketService');
+const { logAction } = require('../middleware/auditMiddleware');
+const Ticket = require('../models/Ticket');
 
 const router = express.Router();
+
+// GET /api/tickets/hotspots - Aggregation for Heatmap
+router.get('/hotspots', async (req, res) => {
+  try {
+    const twoDaysAgo = new Date(Date.now() - 48 * 60 * 60 * 1000);
+    
+    // Aggregate: Group by proximity (approximated by rounding coords)
+    // In a real prod environment we'd use $geoNear or H3 grids. For MVP, we'll just return raw points for Leaflet.heat
+    // If we want clustering on backend, we could group, but leaflet.heat handles raw points beautifully.
+    const tickets = await Ticket.find({ createdAt: { $gte: twoDaysAgo } }).select('location status');
+    
+    const points = tickets.map(t => [
+      t.location.coordinates[1], // lat
+      t.location.coordinates[0], // lng
+      t.status === 'High Priority' ? 1 : 0.5 // intensity
+    ]);
+
+    res.json({ hotspots: points });
+  } catch (error) {
+    console.error('[Hotspots Error]:', error.message);
+    res.status(500).json({ error: 'Failed to fetch hotspots' });
+  }
+});
 
 // GET /api/tickets - For Authority Dashboard
 router.get('/', async (req, res) => {
@@ -67,6 +92,46 @@ router.get('/track/:trackingId', async (req, res) => {
   } catch (error) {
     console.error('[Track Ticket Error]:', error.message);
     res.status(500).json({ error: 'Failed to retrieve ticket status' });
+  }
+});
+
+// PATCH /api/tickets/:id/status - Kanban Board Status Update
+router.patch('/:id/status', logAction('STATUS_UPDATE'), async (req, res) => {
+  try {
+    const { status } = req.body;
+    const ticket = await Ticket.findByIdAndUpdate(req.params.id, { status }, { new: true });
+    if (!ticket) return res.status(404).json({ error: 'Ticket not found' });
+    res.json({ ticket });
+  } catch (error) {
+    console.error('[Update Status Error]:', error.message);
+    res.status(500).json({ error: 'Failed to update status' });
+  }
+});
+
+// POST /api/tickets/:id/audit-decrypt - Log Evidence Decryption
+router.post('/:id/audit-decrypt', logAction('EVIDENCE_DECRYPTED'), async (req, res) => {
+  res.json({ success: true, message: 'Decryption logged securely.' });
+});
+
+// POST /api/verify-khoya-paya - Mock Facial Recognition Bridge
+router.post('/verify-khoya-paya', logAction('KHOYA_PAYA_CHECK'), async (req, res) => {
+  try {
+    // Simulate API delay for national database check
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    
+    // Return a random mock match
+    const matchScore = Math.floor(Math.random() * (99 - 40 + 1)) + 40; // 40 to 99%
+    const isMatch = matchScore > 80;
+
+    res.json({
+      matchFound: isMatch,
+      confidence: matchScore,
+      database: 'KhoyaPaya-National',
+      matchedProfileId: isMatch ? `KP-${Math.floor(Math.random() * 100000)}` : null,
+      message: isMatch ? 'HIGH CONFIDENCE MATCH FOUND' : 'No significant matches found in national database.'
+    });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to connect to Khoya Paya database.' });
   }
 });
 
