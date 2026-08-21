@@ -20,9 +20,9 @@ const Header = () => {
           <ArrowLeft className="w-5 h-5" />
           <span className="text-sm font-medium hidden sm:inline">Home</span>
         </Link>
-        <h1 className="text-xl font-bold text-gray-800 tracking-tight">
+        <Link to="/" className="text-xl font-bold text-gray-800 tracking-tight hover:opacity-80 transition-opacity">
           Raksha <span className="text-teal-600">PWA</span>
-        </h1>
+        </Link>
       </div>
       <div className="flex gap-2">
         {location.pathname !== '/authority' && (

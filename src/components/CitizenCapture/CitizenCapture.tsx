@@ -134,12 +134,12 @@ export const CitizenCapture: React.FC = () => {
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-[15px] h-[15px]"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
             Home
           </Link>
-          <div className="font-display text-[19px] font-bold flex items-center gap-2.5 tracking-tight">
+          <Link to="/" className="font-display text-[19px] font-bold flex items-center gap-2.5 tracking-tight hover:opacity-80 transition-opacity">
             <span className="w-[22px] h-[22px] border-[1.5px] border-[var(--ink)] rounded-full flex items-center justify-center relative">
               <span className="block w-[7px] h-[7px] bg-[var(--saffron)] rounded-full"></span>
             </span>
             Raksha
-          </div>
+          </Link>
           <div className="hidden sm:flex gap-7 items-center">
             <Link to="/report" className="text-sm font-medium text-[var(--ink)] border-b-2 border-[var(--saffron)] pb-[3px]">Report</Link>
             <Link to="/track" className="text-sm font-medium text-[var(--ink-soft)] hover:text-[var(--ink)] transition-colors">Track a report</Link>

@@ -9,7 +9,7 @@ export const Landing: React.FC = () => {
     <div className="landing-page">
       <nav>
         <div className="wrap">
-          <div className="logo"><span className="dot"></span>Raksha</div>
+          <div className="logo" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} style={{ cursor: 'pointer' }}><span className="dot"></span>Raksha</div>
           <div className="nav-links">
             <a href="#how">How it works</a>
             <a href="#privacy">Privacy</a>
