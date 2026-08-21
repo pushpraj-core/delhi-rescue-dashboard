@@ -1,11 +1,46 @@
 @import "tailwindcss";
 
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
 @layer base {
+  :root {
+    --paper: #EFEEE6;
+    --paper-2: #E6E3D6;
+    --card: #F7F6F0;
+    --ink: #16233A;
+    --ink-soft: #3C4A5F;
+    --teal: #0F6B5C;
+    --teal-light: #2F8F7E;
+    --saffron: #C97438;
+    --stamp: #A23B2E;
+    --line: rgba(22,35,58,0.16);
+    --line-strong: rgba(22,35,58,0.32);
+    --font-display: 'Space Grotesk', sans-serif;
+    --font-body: 'Inter', sans-serif;
+    --font-mono: 'IBM Plex Mono', monospace;
+  }
+
   body {
     margin: 0;
     min-height: 100vh;
-    font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
-    background-color: #f3f4f6; /* gray-100 */
-    color: #111827; /* gray-900 */
+    font-family: var(--font-body);
+    background-color: var(--paper);
+    color: var(--ink);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+}
+
+@layer components {
+  /* Dotted paper background */
+  .bg-dotted-paper {
+    background-image: radial-gradient(var(--line) 1px, transparent 1px);
+    background-size: 20px 20px;
+  }
+  
+  /* Camera viewfinder background */
+  .bg-camera-grid {
+    background-image: linear-gradient(rgba(255,255,255,0.035) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.035) 1px, transparent 1px);
+    background-size: 26px 26px;
   }
 }

@@ -1,19 +1,17 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Camera, MapPin, AlertCircle, ShieldCheck, RefreshCw, Send, AlertTriangle, Tag, CheckSquare, Square, CheckCircle, Copy } from 'lucide-react';
 import { useSecureCamera } from './useSecureCamera';
 import { useLocationSecure } from './useLocationSecure';
 import { initModel, captureSecurely } from './inference';
 import { encryptImagePayload } from '../../utils/crypto';
 import { demoPublicKey } from '../../utils/demoKeys';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 
 const QUICK_TAGS = [
   'Traffic Intersection',
   'Construction Site',
   'Railway Station',
   'Bus Stand',
-  'Market Area',
-  'Highway Dhaba'
+  'Market Area'
 ];
 
 export const CitizenCapture: React.FC = () => {
@@ -35,14 +33,14 @@ export const CitizenCapture: React.FC = () => {
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [isEmergency, setIsEmergency] = useState(false);
 
-  // Success Modal State
   const [trackingId, setTrackingId] = useState<string | null>(null);
   const [isOfflineSave, setIsOfflineSave] = useState(false);
 
-  // Initialize TensorFlow and Camera on mount
+  // 1: Capture, 2: Details/Confirm, 3: Success
+  const [step, setStep] = useState<1 | 2 | 3>(1); 
+
   useEffect(() => {
     let mounted = true;
-    
     const init = async () => {
       try {
         await initModel();
@@ -52,145 +50,69 @@ export const CitizenCapture: React.FC = () => {
         if (mounted) setError(err.message || 'Initialization failed.');
       }
     };
-
     init();
-
-    return () => {
-      mounted = false;
-      stopCamera();
-    };
+    return () => { mounted = false; stopCamera(); };
   }, [startCamera, stopCamera]);
 
   const handleCapture = async () => {
     if (!videoRef.current || !canvasRef.current || !modelReady) return;
-
-    setIsCapturing(true);
-    setError(null);
-    setSelectedCategory('');
-    setSelectedTags([]);
-    setIsEmergency(false);
-
+    setIsCapturing(true); setError(null);
     try {
-      // 1. Verify Geofence First
       const loc = await getSecureLocation();
       setLocation(loc);
-
-      // 2. Perform zero-data-leak capture & inference
       const { blob, scene_confidence_score } = await captureSecurely(videoRef.current, canvasRef.current);
       setCaptureBlob(blob);
       setConfidenceScore(scene_confidence_score);
-
-      // 3. Stop camera immediately to prevent background monitoring
       stopCamera();
-      
+      setStep(2);
     } catch (err: any) {
       setError(err.message);
-      // Ensure we don't hold any partial state if there's an error
-      setCaptureBlob(null);
-      setLocation(null);
-      setConfidenceScore(null);
     } finally {
       setIsCapturing(false);
     }
   };
 
   const handleRetake = async () => {
-    setCaptureBlob(null);
-    setLocation(null);
-    setConfidenceScore(null);
-    setError(null);
-    setTrackingId(null);
-    setIsOfflineSave(false);
-    setSelectedCategory('');
-    setSelectedTags([]);
-    setIsEmergency(false);
+    setCaptureBlob(null); setLocation(null); setConfidenceScore(null); setError(null);
+    setSelectedCategory(''); setSelectedTags([]); setIsEmergency(false);
+    setStep(1);
     await startCamera();
   };
 
   const toggleTag = (tag: string) => {
-    setSelectedTags(prev => 
-      prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]
-    );
+    setSelectedTags(prev => prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]);
   };
 
   const handleSubmit = async () => {
     if (!location || !captureBlob || !selectedCategory || !confidenceScore) return;
-    
-    setIsSubmitting(true);
-    setError(null);
+    setIsSubmitting(true); setError(null);
 
     try {
-      // Encrypt the Blob securely using Hybrid E2EE Encryption
       const encryptedPayload = await encryptImagePayload(captureBlob, demoPublicKey);
-
       const payload = {
-        longitude: location.longitude,
-        latitude: location.latitude,
-        encryptedPayload, // E2EE Payload
-        confidence_score: confidenceScore,
-        user_category: selectedCategory,
-        tags: selectedTags,
-        isEmergency
+        longitude: location.longitude, latitude: location.latitude,
+        encryptedPayload, confidence_score: confidenceScore,
+        user_category: selectedCategory, tags: selectedTags, isEmergency
       };
 
       try {
         if (!navigator.onLine) throw new Error('Offline');
-        
         const response = await fetch('/api/tickets', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
+          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
         });
-
-        if (!response.ok) {
-          throw new Error('Server rejected submission');
-        }
-
+        if (!response.ok) throw new Error('Server rejected submission');
         const data = await response.json();
         const id = data.ticket.trackingId;
-        setTrackingId(id);
-        setIsOfflineSave(false);
-        
-        // Save to local history for easy tracking
-        const history = JSON.parse(localStorage.getItem('raksha_recent_reports') || '[]');
-        history.unshift({
-          id,
-          date: new Date().toISOString(),
-          category: selectedCategory,
-          isOffline: false
-        });
-        localStorage.setItem('raksha_recent_reports', JSON.stringify(history.slice(0, 10))); // keep last 10
-
+        setTrackingId(id); setIsOfflineSave(false);
+        saveHistory(id, false);
       } catch (networkError) {
-        // Offline Fallback
         const { saveOfflineReport } = await import('../../utils/db');
         const offlineId = await saveOfflineReport(payload);
-        
-        // When offline, we don't have a real tracking ID yet from the backend, 
-        // but we can generate a temporary one or instruct the user to sync later.
         const id = `OFFLINE-${offlineId.split('_')[2].toUpperCase()}`;
-        setTrackingId(id);
-        setIsOfflineSave(true);
-        
-        // Save offline report to history too
-        const history = JSON.parse(localStorage.getItem('raksha_recent_reports') || '[]');
-        history.unshift({
-          id,
-          date: new Date().toISOString(),
-          category: selectedCategory,
-          isOffline: true
-        });
-        localStorage.setItem('raksha_recent_reports', JSON.stringify(history.slice(0, 10)));
+        setTrackingId(id); setIsOfflineSave(true);
+        saveHistory(id, true);
       }
-      
-      // Clear sensitive memory strictly
-      setCaptureBlob(null);
-      setLocation(null);
-      setConfidenceScore(null);
-      setSelectedCategory('');
-      setSelectedTags([]);
-      setIsEmergency(false);
-
+      setStep(3);
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -198,185 +120,215 @@ export const CitizenCapture: React.FC = () => {
     }
   };
 
-  if (trackingId) {
-    return (
-      <div className="max-w-md mx-auto p-8 bg-white min-h-[500px] flex flex-col items-center justify-center rounded-2xl shadow-xl border border-gray-100 text-center">
-        <CheckCircle className="w-16 h-16 text-teal-600 mb-6" />
-        <h2 className="text-2xl font-bold text-gray-800 mb-2">Report Submitted</h2>
-        
-        {isOfflineSave ? (
-          <p className="text-orange-600 font-medium mb-6">
-            You are offline. Report securely queued and will automatically sync when connection is restored.
-          </p>
-        ) : (
-          <p className="text-gray-600 mb-6">
-            Your report has been securely transmitted to the District Child Protection Unit.
-          </p>
-        )}
-
-        <div className="bg-gray-50 border border-gray-200 rounded-xl p-6 w-full mb-8">
-          <p className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-2">Your Anonymous Tracking ID</p>
-          <div className="text-4xl font-mono font-bold text-gray-900 tracking-widest flex items-center justify-center gap-3">
-            {trackingId}
-          </div>
-          <p className="text-xs text-gray-500 mt-4">Save this ID. You can use it to track the status of this report anonymously.</p>
-        </div>
-
-        <div className="flex gap-4 w-full">
-          <button
-            onClick={() => navigate('/track')}
-            className="flex-1 py-3 bg-white border border-gray-300 text-gray-700 font-semibold rounded-lg hover:bg-gray-50 transition"
-          >
-            Track Status
-          </button>
-          <button
-            onClick={handleRetake}
-            className="flex-1 py-3 bg-teal-600 text-white font-semibold rounded-lg hover:bg-teal-700 transition"
-          >
-            New Report
-          </button>
-        </div>
-      </div>
-    );
-  }
+  const saveHistory = (id: string, offline: boolean) => {
+    const history = JSON.parse(localStorage.getItem('raksha_recent_reports') || '[]');
+    history.unshift({ id, date: new Date().toISOString(), category: selectedCategory, isOffline: offline });
+    localStorage.setItem('raksha_recent_reports', JSON.stringify(history.slice(0, 10)));
+  };
 
   return (
-    <div className="max-w-md mx-auto p-4 bg-white min-h-[500px] max-h-[85vh] flex flex-col rounded-2xl shadow-xl border border-gray-100 overflow-y-auto relative">
-      <div className="flex items-center gap-2 mb-4 p-2 bg-teal-50 text-teal-800 rounded-lg shrink-0">
-        <ShieldCheck className="w-5 h-5 text-teal-600" />
-        <span className="font-semibold text-sm">Govt. Secure Capture active</span>
-      </div>
-
-      {(camError || error) && (
-        <div className="mb-4 p-3 bg-red-50 text-red-700 rounded-lg flex items-start gap-2">
-          <AlertCircle className="w-5 h-5 mt-0.5 shrink-0" />
-          <p className="text-sm font-medium">{camError || error}</p>
+    <div className="bg-dotted-paper min-h-[calc(100vh)] text-[var(--ink)] font-body pb-16">
+      <nav className="sticky top-0 z-50 bg-[var(--paper)] border-b-[1.5px] border-[var(--ink)]">
+        <div className="max-w-[1160px] mx-auto px-6 h-16 flex items-center justify-between">
+          <Link to="/" className="flex items-center gap-1.5 text-sm font-medium text-[var(--ink-soft)] hover:text-[var(--ink)] transition-colors">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-[15px] h-[15px]"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+            Home
+          </Link>
+          <div className="font-display text-[19px] font-bold flex items-center gap-2.5 tracking-tight">
+            <span className="w-[22px] h-[22px] border-[1.5px] border-[var(--ink)] rounded-full flex items-center justify-center relative">
+              <span className="block w-[7px] h-[7px] bg-[var(--saffron)] rounded-full"></span>
+            </span>
+            Raksha
+          </div>
+          <div className="hidden sm:flex gap-7 items-center">
+            <Link to="/report" className="text-sm font-medium text-[var(--ink)] border-b-2 border-[var(--saffron)] pb-[3px]">Report</Link>
+            <Link to="/track" className="text-sm font-medium text-[var(--ink-soft)] hover:text-[var(--ink)] transition-colors">Track a report</Link>
+          </div>
         </div>
-      )}
+      </nav>
 
-      {/* Hidden processing canvas */}
-      <canvas ref={canvasRef} className="hidden" />
+      <main className="max-w-[640px] mx-auto px-6 pt-12">
+        <div className="mb-6">
+          <div className="font-mono text-[11.5px] tracking-[0.08em] uppercase text-[var(--teal)] flex items-center gap-2 mb-3">
+            <span className="w-1.5 h-1.5 bg-[var(--saffron)] rotate-45 block"></span>
+            Step {step} of 3 · {step === 1 ? 'Capture' : step === 2 ? 'Details & Confirm' : 'Sent'}
+          </div>
+          <h1 className="font-display font-semibold text-[clamp(24px,3vw,30px)] tracking-tight mb-2">
+            {step === 3 ? 'Report submitted securely' : 'Report a child in need'}
+          </h1>
+          <p className="text-[14.5px] text-[var(--ink-soft)] max-w-[480px]">
+            {step === 3 
+              ? 'Your identity remains private. The District Child Protection Unit has received the encrypted file.' 
+              : 'Photograph the situation. Faces are blurred on your device before anything is saved or sent — the original image never leaves your phone.'}
+          </p>
+        </div>
 
-      {!captureBlob ? (
-        <div className="relative rounded-xl overflow-hidden bg-black aspect-[3/4] flex items-center justify-center">
-          <video
-            ref={videoRef}
-            autoPlay
-            playsInline
-            muted
-            className="absolute inset-0 w-full h-full object-cover"
-          />
-          {!modelReady && !camError && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 text-white z-10">
-              <RefreshCw className="w-8 h-8 animate-spin mb-2" />
-              <p className="text-sm font-medium">Initializing Secure Model...</p>
+        {/* Hidden Canvas */}
+        <canvas ref={canvasRef} className="hidden" />
+
+        {error || camError ? (
+          <div className="p-4 bg-red-50 border border-red-200 text-red-700 rounded-sm mb-6 text-sm font-medium shadow-sm">
+            {error || camError}
+            <button onClick={handleRetake} className="ml-4 underline">Try Again</button>
+          </div>
+        ) : null}
+
+        <div className="bg-[var(--card)] border-[1.5px] border-[var(--ink)] rounded-[3px] p-5 shadow-[5px_5px_0_var(--line-strong)]">
+          <div className="flex items-center gap-2 border border-[var(--line-strong)] rounded-[3px] py-2 px-3 mb-4 bg-[var(--paper)]">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-[15px] h-[15px] text-[var(--teal)] shrink-0"><path d="M12 2l8 3.5v6c0 5-3.4 8.9-8 10.5-4.6-1.6-8-5.5-8-10.5v-6L12 2z"/><path d="M9 12l2 2 4-4"/></svg>
+            <span className="font-mono text-[11.5px] text-[var(--ink-soft)] tracking-[0.01em]">ON-DEVICE SECURE CAPTURE ACTIVE</span>
+          </div>
+
+          {step === 1 && (
+            <div className="aspect-[3/4] rounded-[2px] overflow-hidden relative border-[1.5px] border-[var(--ink)] bg-[#0d1420] bg-camera-grid">
+              <video ref={videoRef} autoPlay playsInline muted className="absolute inset-0 w-full h-full object-cover z-0" />
+              
+              {!modelReady && !camError && (
+                <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-[#0d1420]/80 text-white font-mono text-xs">
+                  <div className="w-6 h-6 border-2 border-white/20 border-t-[var(--saffron)] rounded-full animate-spin mb-3"></div>
+                  LOADING NEURAL ENGINE
+                </div>
+              )}
+
+              <div className="absolute top-4 left-1/2 -translate-x-1/2 font-mono text-[10.5px] text-[rgba(239,238,230,0.65)] tracking-[0.04em] z-10 text-center">
+                CENTER SITUATION IN FRAME
+              </div>
+
+              {/* Corners */}
+              <div className="absolute top-3 left-3 w-5 h-5 border-t-2 border-l-2 border-[var(--saffron)] z-10"></div>
+              <div className="absolute top-3 right-3 w-5 h-5 border-t-2 border-r-2 border-[var(--saffron)] z-10"></div>
+              <div className="absolute bottom-3 left-3 w-5 h-5 border-b-2 border-l-2 border-[var(--saffron)] z-10"></div>
+              <div className="absolute bottom-3 right-3 w-5 h-5 border-b-2 border-r-2 border-[var(--saffron)] z-10"></div>
+
+              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10">
+                <button 
+                  onClick={handleCapture}
+                  disabled={!modelReady || isCapturing}
+                  className="w-[60px] h-[60px] rounded-full bg-[var(--paper)] border-[3px] border-[var(--ink)] flex items-center justify-center cursor-pointer hover:bg-gray-200 transition-colors disabled:opacity-50"
+                >
+                  {isCapturing 
+                    ? <div className="w-5 h-5 border-2 border-[var(--ink)] border-t-transparent rounded-full animate-spin"></div>
+                    : <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-6 h-6 text-[var(--ink)]"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                  }
+                </button>
+              </div>
             </div>
           )}
-          
-          <button
-            onClick={handleCapture}
-            disabled={!modelReady || isCapturing}
-            className="absolute bottom-6 left-1/2 -translate-x-1/2 w-16 h-16 bg-white rounded-full border-4 border-teal-500 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed z-20 flex items-center justify-center hover:scale-105 transition-transform"
-          >
-            {isCapturing ? (
-              <RefreshCw className="w-6 h-6 animate-spin text-teal-600" />
-            ) : (
-              <Camera className="w-6 h-6 text-teal-600" />
-            )}
-          </button>
-        </div>
-      ) : (
-        <div className="flex flex-col gap-4">
-          <div className="rounded-xl overflow-hidden bg-gray-100 aspect-[3/4] relative max-h-[300px]">
-            <img
-              src={URL.createObjectURL(captureBlob)}
-              alt="Processed Secure Capture"
-              className="w-full h-full object-cover"
-            />
-            {/* Display AI Confidence Score */}
-            <div className={`absolute top-4 right-4 px-3 py-1 rounded-full text-xs font-bold text-white shadow-lg ${confidenceScore && confidenceScore < 60 ? 'bg-orange-500' : 'bg-green-500'}`}>
-              AI Confidence: {confidenceScore}%
-            </div>
-          </div>
-          
-          <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg flex flex-col gap-4">
-            {/* Emergency Toggle */}
-            <label className="flex items-center gap-3 p-3 bg-red-50 border border-red-200 rounded-lg cursor-pointer hover:bg-red-100 transition">
-              {isEmergency ? <CheckSquare className="w-5 h-5 text-red-600" /> : <Square className="w-5 h-5 text-red-400" />}
-              <span className="text-sm font-bold text-red-700">Immediate Physical Danger</span>
-              <input 
-                type="checkbox" 
-                className="hidden" 
-                checked={isEmergency} 
-                onChange={(e) => setIsEmergency(e.target.checked)} 
-              />
-            </label>
 
-            {/* Main Category */}
-            <div>
-              <h3 className="font-semibold text-gray-800 text-sm mb-2">Primary Category *</h3>
-              <div className="flex flex-col gap-2">
-                {['Traffic Intersection Begging', 'Hazardous Labor', 'Unattended Child'].map(cat => (
-                  <label key={cat} className={`flex items-center gap-3 p-2.5 rounded-lg border cursor-pointer transition-colors ${selectedCategory === cat ? 'bg-teal-50 border-teal-500' : 'bg-white border-gray-200 hover:bg-gray-50'}`}>
-                    <input 
-                      type="radio" 
-                      name="category" 
-                      value={cat}
-                      checked={selectedCategory === cat}
-                      onChange={(e) => setSelectedCategory(e.target.value)}
-                      className="w-4 h-4 text-teal-600 focus:ring-teal-500"
-                    />
-                    <span className="text-sm font-medium text-gray-700">{cat}</span>
-                  </label>
-                ))}
+          {step === 2 && captureBlob && (
+            <div className="animate-in fade-in duration-300">
+              <div className="aspect-[3/4] rounded-[2px] overflow-hidden relative border-[1.5px] border-[var(--ink)] max-h-[350px]">
+                <img src={URL.createObjectURL(captureBlob)} alt="Secure Capture" className="w-full h-full object-cover" />
+                <div className={`absolute top-3 right-3 px-2 py-0.5 rounded-[2px] font-mono text-[10px] font-bold border border-[var(--ink)] shadow-[2px_2px_0_var(--ink)] ${confidenceScore && confidenceScore < 60 ? 'bg-[var(--saffron)] text-white' : 'bg-[var(--teal)] text-white'}`}>
+                  AI SCORE: {confidenceScore}%
+                </div>
               </div>
-            </div>
 
-            {/* Quick Tags */}
-            <div>
-              <h3 className="font-semibold text-gray-800 text-sm mb-2 flex items-center gap-1">
-                <Tag className="w-4 h-4 text-gray-500" />
-                Context Tags (Optional)
-              </h3>
-              <div className="flex flex-wrap gap-2">
-                {QUICK_TAGS.map(tag => (
-                  <button
-                    key={tag}
-                    onClick={() => toggleTag(tag)}
-                    className={`px-3 py-1.5 text-xs font-semibold rounded-full border transition ${
-                      selectedTags.includes(tag) 
-                        ? 'bg-teal-100 border-teal-300 text-teal-800' 
-                        : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
-                    }`}
-                  >
-                    {tag}
+              <div className="mt-6 flex flex-col gap-5">
+                <div>
+                  <h3 className="font-semibold text-[13px] mb-2">Category *</h3>
+                  <div className="flex flex-col gap-2">
+                    {['Traffic Intersection Begging', 'Hazardous Labor', 'Unattended Child'].map(cat => (
+                      <label key={cat} className={`flex items-center gap-3 p-3 border-[1.5px] rounded-[2px] cursor-pointer transition-colors ${selectedCategory === cat ? 'border-[var(--ink)] bg-[var(--paper-2)]' : 'border-[var(--line-strong)] bg-white hover:bg-[var(--paper-2)]'}`}>
+                        <div className={`w-4 h-4 rounded-full border-[1.5px] border-[var(--ink)] flex items-center justify-center ${selectedCategory === cat ? 'bg-[var(--ink)]' : 'bg-transparent'}`}>
+                           {selectedCategory === cat && <div className="w-1.5 h-1.5 bg-white rounded-full"></div>}
+                        </div>
+                        <span className="text-[13px] font-medium">{cat}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="font-semibold text-[13px] mb-2">Quick Tags (Optional)</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {QUICK_TAGS.map(tag => (
+                      <button
+                        key={tag} onClick={() => toggleTag(tag)}
+                        className={`px-3 py-1 text-[12px] font-medium rounded-[2px] border-[1.5px] transition-colors ${
+                          selectedTags.includes(tag) ? 'border-[var(--ink)] bg-[var(--ink)] text-white' : 'border-[var(--line-strong)] bg-white text-[var(--ink-soft)] hover:border-[var(--ink)]'
+                        }`}
+                      >
+                        {tag}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <label className="flex items-center gap-3 p-3 bg-[rgba(162,59,46,0.06)] border border-[rgba(162,59,46,0.4)] rounded-[2px] cursor-pointer mt-2">
+                  <input type="checkbox" className="w-4 h-4 accent-[var(--stamp)]" checked={isEmergency} onChange={(e) => setIsEmergency(e.target.checked)} />
+                  <span className="text-[13px] font-bold text-[var(--stamp)]">Flag as Immediate Physical Danger</span>
+                </label>
+
+                <div className="flex gap-3 mt-2">
+                  <button onClick={handleRetake} disabled={isSubmitting} className="flex-1 py-3 text-[13px] font-bold border-[1.5px] border-[var(--ink)] rounded-[2px] hover:bg-[var(--line)] transition-colors">
+                    RETAKE
                   </button>
-                ))}
+                  <button onClick={handleSubmit} disabled={!selectedCategory || isSubmitting} className="flex-[2] py-3 text-[13px] font-bold bg-[var(--ink)] text-[var(--paper)] border-[1.5px] border-[var(--ink)] rounded-[2px] shadow-[3px_3px_0_var(--saffron)] hover:translate-y-[2px] hover:shadow-[1px_1px_0_var(--saffron)] transition-all disabled:opacity-50 disabled:shadow-none flex items-center justify-center gap-2">
+                    {isSubmitting ? <span className="w-4 h-4 border-2 border-[var(--paper)] border-t-transparent rounded-full animate-spin"></span> : 'ENCRYPT & SEND'}
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
+          )}
 
-          <div className="flex gap-2 mt-2">
-            <button
-              onClick={handleRetake}
-              disabled={isSubmitting}
-              className="flex-1 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-lg transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
-            >
-              <RefreshCw className="w-4 h-4" />
-              Retake
-            </button>
-            
-            <button
-              onClick={handleSubmit}
-              disabled={!selectedCategory || isSubmitting}
-              className="flex-1 py-3 bg-teal-600 hover:bg-teal-700 text-white font-semibold rounded-lg transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:bg-gray-300"
-            >
-              {isSubmitting ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-              Submit Securely
-            </button>
+          {step === 3 && trackingId && (
+            <div className="py-8 flex flex-col items-center text-center animate-in fade-in duration-300">
+              <div className="w-16 h-16 rounded-full bg-[var(--teal-light)] text-white flex items-center justify-center mb-5 shadow-[4px_4px_0_var(--ink)] border-[2px] border-[var(--ink)]">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-8 h-8"><path d="M20 6L9 17l-5-5"/></svg>
+              </div>
+              
+              <p className="font-mono text-[12px] font-bold tracking-widest text-[var(--ink-soft)] mb-2 uppercase">Your Anonymous Tracking ID</p>
+              <div className="text-[32px] font-mono font-bold tracking-widest bg-[var(--paper-2)] border-[1.5px] border-[var(--ink)] px-6 py-3 rounded-[2px] shadow-[4px_4px_0_var(--line-strong)] mb-8">
+                {trackingId}
+              </div>
+              
+              {isOfflineSave && (
+                <div className="mb-6 p-3 bg-[rgba(201,116,56,0.1)] border border-[var(--saffron)] text-[13px] text-[var(--ink)] rounded-[2px]">
+                  <b>Offline Mode:</b> This report is securely queued and will automatically sync when you regain connection.
+                </div>
+              )}
+              
+              <div className="flex gap-3 w-full max-w-[300px]">
+                <Link to="/track" className="flex-1 py-3 text-[13px] font-bold border-[1.5px] border-[var(--ink)] rounded-[2px] bg-white hover:bg-[var(--line)] transition-colors text-center">
+                  TRACK
+                </Link>
+                <button onClick={handleRetake} className="flex-1 py-3 text-[13px] font-bold bg-[var(--ink)] text-white border-[1.5px] border-[var(--ink)] rounded-[2px] hover:bg-[var(--ink-soft)] transition-colors">
+                  NEW REPORT
+                </button>
+              </div>
+            </div>
+          )}
+
+          <div className="flex mt-6 pt-4 border-t border-[var(--line-strong)]">
+            <div className="flex-1 text-center relative">
+              <div className={`w-5 h-5 mx-auto mb-1.5 rounded-full font-mono text-[10.5px] flex items-center justify-center relative z-10 ${step >= 1 ? 'bg-[var(--ink)] text-[var(--paper)]' : 'bg-transparent border border-[var(--line-strong)] text-[var(--ink-soft)]'}`}>1</div>
+              <p className="text-[11px] text-[var(--ink-soft)]">Capture</p>
+              <div className="absolute top-[9px] left-[60%] w-[80%] h-px bg-[var(--line-strong)]"></div>
+            </div>
+            <div className="flex-1 text-center relative">
+              <div className={`w-5 h-5 mx-auto mb-1.5 rounded-full font-mono text-[10.5px] flex items-center justify-center relative z-10 ${step >= 2 ? 'bg-[var(--ink)] text-[var(--paper)]' : 'bg-[var(--card)] border border-[var(--line-strong)] text-[var(--ink-soft)]'}`}>2</div>
+              <p className="text-[11px] text-[var(--ink-soft)]">Details</p>
+              <div className="absolute top-[9px] left-[60%] w-[80%] h-px bg-[var(--line-strong)]"></div>
+            </div>
+            <div className="flex-1 text-center relative">
+              <div className={`w-5 h-5 mx-auto mb-1.5 rounded-full font-mono text-[10.5px] flex items-center justify-center relative z-10 ${step >= 3 ? 'bg-[var(--ink)] text-[var(--paper)]' : 'bg-[var(--card)] border border-[var(--line-strong)] text-[var(--ink-soft)]'}`}>3</div>
+              <p className="text-[11px] text-[var(--ink-soft)]">Send</p>
+            </div>
           </div>
         </div>
-      )}
+
+        <div className="flex gap-3 items-start mt-6 p-4 bg-[var(--paper-2)] border-l-2 border-[var(--teal)] rounded-r-[2px]">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4 text-[var(--teal)] shrink-0 mt-0.5"><path d="M12 2l8 3.5v6c0 5-3.4 8.9-8 10.5-4.6-1.6-8-5.5-8-10.5v-6L12 2z"/></svg>
+          <p className="text-[13px] text-[var(--ink-soft)] leading-relaxed">
+            <b className="text-[var(--ink)]">Your identity stays private.</b> Reports are encrypted and reviewed only by verified child protection officers in your district. You won't be asked to give your name.
+          </p>
+        </div>
+
+        <div className="mt-4 p-3 border border-[rgba(162,59,46,0.4)] bg-[rgba(162,59,46,0.06)] rounded-[2px] text-[12.5px] text-[var(--stamp)] leading-relaxed">
+          <b>In immediate danger?</b> Contact Childline at 1098 or the police at 100 before filing a report.
+        </div>
+      </main>
     </div>
   );
 };

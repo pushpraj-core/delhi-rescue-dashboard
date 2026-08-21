@@ -11,7 +11,7 @@ const Header = () => {
   const location = useLocation();
   const isLanding = location.pathname === '/';
 
-  if (isLanding) return null;
+  if (isLanding || location.pathname === '/report') return null;
 
   return (
     <header className="bg-white border-b px-6 py-4 flex justify-between items-center shadow-sm">
