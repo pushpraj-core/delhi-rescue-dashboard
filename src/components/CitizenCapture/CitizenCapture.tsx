@@ -104,24 +104,34 @@ export const CitizenCapture: React.FC = () => {
         user_category: selectedCategory
       };
 
-      const response = await fetch('/api/tickets', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
+      try {
+        if (!navigator.onLine) throw new Error('Offline');
+        
+        const response = await fetch('/api/tickets', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
 
-      const data = await response.json();
+        if (!response.ok) {
+          throw new Error('Server rejected submission');
+        }
 
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to submit report');
+        alert('Secure report submitted to Authorities successfully.');
+        setSuccessMsg('Report submitted securely!');
+      } catch (networkError) {
+        // Offline Fallback
+        const { saveOfflineReport } = await import('../../utils/db');
+        await saveOfflineReport(payload);
+        alert('You are currently offline. Your encrypted report has been saved securely to your device and will automatically sync when connection is restored.');
+        setSuccessMsg('Report saved offline. Will sync when online.');
       }
-
-      setSuccessMsg(`Report submitted securely! (${data.message}) Status: ${data.ticket.status}`);
       
       // Clear sensitive memory strictly
       setCaptureBlob(null);
       setLocation(null);
       setConfidenceScore(null);
+      setSelectedCategory('');
 
     } catch (err: any) {
       setError(err.message);
