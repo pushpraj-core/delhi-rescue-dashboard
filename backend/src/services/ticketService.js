@@ -52,32 +52,11 @@ const ingestTicket = async (ticketData) => {
   });
 
   if (existingTicket) {
-    // Duplicate found, increment report count
-    existingTicket.reportCount += 1;
-    
-    // Upgrade confidence score if the new report is more confident
-    if (confidence_score > existingTicket.confidence_score) {
-      existingTicket.confidence_score = confidence_score;
-    }
-    
-    // Elevate priority if the new duplicate report marks emergency
-    if (isEmergency) {
-      existingTicket.isEmergency = true;
-    }
-    
-    // Merge new tags seamlessly
-    if (tags && tags.length > 0) {
-      const uniqueTags = new Set([...existingTicket.tags, ...tags]);
-      existingTicket.tags = Array.from(uniqueTags);
-    }
-    
-    if (isEmergency) existingTicket.isEmergency = true;
-
-    await existingTicket.save();
-    return {
-      status: 'DUPLICATE_UPDATED',
-      ticket: existingTicket
-    };
+    // [DEV MODE]: Duplicate detection disabled for testing so that every submission
+    // creates a new ticket. In production, this would increment the reportCount.
+    // existingTicket.reportCount += 1;
+    // ...
+    // return { status: 'DUPLICATE_UPDATED', ticket: existingTicket };
   }
 
   // 5. No duplicate, create new Case File
