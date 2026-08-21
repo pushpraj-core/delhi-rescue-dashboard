@@ -80,6 +80,16 @@ export const captureSecurely = async (
     const blob = await new Promise<Blob>((resolve, reject) => {
       canvas.toBlob(
         (b) => {
+          // 5. ABSOLUTE MEMORY FLUSH (Zero Data Leak Rule)
+          // Clear canvas completely by writing solid black over the entire buffer, then clearing.
+          ctx.fillStyle = '#000000';
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          
+          // Explicitly reset canvas dimensions to flush memory
+          canvas.width = 0;
+          canvas.height = 0;
+
           if (b) resolve(b);
           else reject(new Error('Failed to create Blob'));
         },
@@ -91,15 +101,5 @@ export const captureSecurely = async (
     return { blob, scene_confidence_score };
   } catch (error) {
     throw new Error('Secure capture failed: ' + (error as Error).message);
-  } finally {
-    // 5. ABSOLUTE MEMORY FLUSH (Zero Data Leak Rule)
-    // Clear canvas completely by writing solid black over the entire buffer, then clearing.
-    ctx.fillStyle = '#000000';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    
-    // Explicitly reset canvas dimensions to flush memory
-    canvas.width = 0;
-    canvas.height = 0;
   }
 };

@@ -15,7 +15,7 @@ const QUICK_TAGS = [
 ];
 
 export const CitizenCapture: React.FC = () => {
-  const { startCamera, stopCamera, videoRef, error: camError } = useSecureCamera();
+  const { startCamera, stopCamera, videoRef, streamRef, error: camError } = useSecureCamera();
   const { getSecureLocation } = useLocationSecure();
   const navigate = useNavigate();
   
@@ -52,7 +52,7 @@ export const CitizenCapture: React.FC = () => {
     };
     init();
     return () => { mounted = false; stopCamera(); };
-  }, [startCamera, stopCamera]);
+  }, []);
 
   const handleCapture = async () => {
     if (!videoRef.current || !canvasRef.current || !modelReady) return;
@@ -181,7 +181,18 @@ export const CitizenCapture: React.FC = () => {
 
           {step === 1 && (
             <div className="aspect-[3/4] rounded-xl overflow-hidden relative border border-[var(--line)] bg-[#0d1420] bg-camera-grid">
-              <video ref={videoRef} autoPlay playsInline muted className="absolute inset-0 w-full h-full object-cover z-0" />
+              <video 
+                ref={videoRef} 
+                autoPlay 
+                playsInline 
+                muted 
+                onLoadedMetadata={() => {
+                  if (videoRef.current) {
+                    videoRef.current.play().catch(e => console.warn('Play prevented', e));
+                  }
+                }}
+                className="absolute inset-0 w-full h-full object-cover z-0" 
+              />
               
               {!modelReady && !camError && (
                 <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-[#0d1420]/80 text-white font-mono text-xs">
@@ -190,8 +201,11 @@ export const CitizenCapture: React.FC = () => {
                 </div>
               )}
 
-              <div className="absolute top-4 left-1/2 -translate-x-1/2 font-mono text-[10.5px] text-[rgba(239,238,230,0.65)] tracking-[0.04em] z-10 text-center">
-                CENTER SITUATION IN FRAME
+              <div className="absolute top-4 left-1/2 -translate-x-1/2 font-mono text-[10.5px] text-[rgba(239,238,230,0.65)] tracking-[0.04em] z-10 text-center flex flex-col items-center">
+                <span>CENTER SITUATION IN FRAME</span>
+                <span className="mt-1 px-2 py-0.5 bg-black/50 text-white rounded text-[9px]">
+                  CAMERA: {streamRef.current ? streamRef.current.getVideoTracks()[0]?.label || 'Unknown' : 'Initializing...'}
+                </span>
               </div>
 
               {/* Corners */}
