@@ -33,10 +33,12 @@ export const useLocationSecure = () => {
           ) {
             resolve({ latitude, longitude });
           } else {
-            // DEV MOCK: If we are in development, automatically spoof location to Delhi (Connaught Place) for testing
+            // DEV MOCK: If we are in development, automatically spoof location to a random spot in Delhi for testing
             if (import.meta.env.DEV) {
-              console.warn("DEV MODE: Spoofing location to Delhi (Connaught Place)");
-              resolve({ latitude: 28.6315, longitude: 77.2167 });
+              const randomLat = DELHI_BOUNDS.latMin + Math.random() * (DELHI_BOUNDS.latMax - DELHI_BOUNDS.latMin);
+              const randomLng = DELHI_BOUNDS.lngMin + Math.random() * (DELHI_BOUNDS.lngMax - DELHI_BOUNDS.lngMin);
+              console.warn("DEV MODE: Spoofing location to a random Delhi coordinate");
+              resolve({ latitude: randomLat, longitude: randomLng });
             } else {
               // Log securely, zero data leak
               reject(
