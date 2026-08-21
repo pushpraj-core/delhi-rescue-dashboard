@@ -16,44 +16,26 @@ export const Landing: React.FC = () => {
             <a href="#authorities">For authorities</a>
             <a href="#impact">Impact</a>
           </div>
-          <div className="nav-cta">
+          <div className="nav-cta" style={{ alignItems: 'center' }}>
             <button onClick={() => navigate('/track')} className="btn btn-ghost">Track Report</button>
             <button onClick={() => navigate('/authority')} className="btn btn-ghost">Authority Login</button>
             <button onClick={() => navigate('/report')} className="btn btn-primary">Report Now</button>
+            <img src="https://upload.wikimedia.org/wikipedia/commons/5/55/Emblem_of_India.svg" alt="Emblem of India" style={{ height: '36px', marginLeft: '12px' }} />
           </div>
         </div>
       </nav>
 
       <section className="hero">
-        <div className="wrap">
+        <div className="wrap" style={{ display: 'block', maxWidth: '800px', margin: '0 auto', textAlign: 'center' }}>
           <div>
-            <div className="eyebrow">PWA · Edge AI · JJ Act, 2015 Compliant</div>
-            <h1>See a child in need?<br/>Report in seconds — <em>without the photo ever leaving your hands.</em></h1>
-            <p className="lede">No app to download. The moment you capture an image, an on-device model finds and blurs the face before anything is saved or sent. Only the report reaches a District Child Protection Unit.</p>
-            <div className="hero-ctas">
+            <div className="eyebrow" style={{ justifyContent: 'center' }}>PWA · Edge AI · JJ Act, 2015 Compliant</div>
+            <h1 style={{ textAlign: 'center' }}>See a child in need?<br/>Report in seconds — <em>without the photo ever leaving your hands.</em></h1>
+            <p className="lede" style={{ textAlign: 'center', margin: '0 auto' }}>No app to download. The moment you capture an image, an on-device model finds and blurs the face before anything is saved or sent. Only the report reaches a District Child Protection Unit.</p>
+            <div className="hero-ctas" style={{ justifyContent: 'center' }}>
               <button onClick={() => navigate('/report')} className="btn btn-primary">Report Now →</button>
               <a href="#how" className="btn btn-ghost">See how it works</a>
             </div>
-            <div className="hero-note">Works in your browser · Nothing saved to your camera roll · 30-second flow</div>
-          </div>
-          <div className="demo">
-            <div className="demo-frame">
-              <svg viewBox="0 0 300 230" xmlns="http://www.w3.org/2000/svg">
-                <rect width="300" height="230" fill="#0A1420"/>
-                <circle cx="150" cy="95" r="46" fill="#1c2f42"/>
-                <rect x="104" y="150" width="92" height="60" rx="20" fill="#1c2f42"/>
-                <g opacity="0.9">
-                  <filter id="blurme"><feGaussianBlur stdDeviation="7"/></filter>
-                  <circle cx="150" cy="95" r="46" fill="#3B9C90" filter="url(#blurme)" opacity="0.55"/>
-                </g>
-              </svg>
-              <div className="demo-scanline"></div>
-              <div className="demo-tag"><span className="pulse"></span>FACE BLURRED · ON-DEVICE</div>
-            </div>
-            <div className="demo-caption">
-              <span>frame_original.jpg</span>
-              <span>PURGED FROM MEMORY</span>
-            </div>
+            <div className="hero-note" style={{ textAlign: 'center' }}>Works in your browser · Nothing saved to your camera roll · 30-second flow</div>
           </div>
         </div>
       </section>
