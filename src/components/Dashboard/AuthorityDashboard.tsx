@@ -5,7 +5,7 @@ import { decryptImagePayload } from '../../utils/crypto';
 import { demoPrivateKey } from '../../utils/demoKeys';
 
 import { MapViewer } from './MapViewer';
-import { KanbanBoard } from './KanbanBoard';
+import { DispatchBoard } from './DispatchBoard';
 import { ReportGenerator } from './ReportGenerator';
 
 interface Ticket {
@@ -214,9 +214,9 @@ export const AuthorityDashboard: React.FC = () => {
         ) : (
           <div className="animate-in fade-in duration-300">
             
-            {/* TAB 1: Kanban Board */}
+            {/* TAB 1: Dispatch Board */}
             {activeTab === 'board' && (
-              <KanbanBoard 
+              <DispatchBoard 
                 rawTickets={tickets} 
                 onTicketUpdate={handleStatusUpdate}
                 onTicketClick={() => setActiveTab('list')}
