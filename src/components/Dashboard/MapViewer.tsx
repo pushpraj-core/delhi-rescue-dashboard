@@ -70,7 +70,7 @@ export const MapViewer: React.FC<MapViewerProps> = ({ tickets }) => {
   ]);
 
   return (
-    <div className="w-full h-[500px] rounded-xl overflow-hidden border border-gray-200 shadow-sm relative z-0">
+    <div className="w-full h-[500px] rounded-[2px] overflow-hidden border-[1.5px] border-[var(--ink)] shadow-[2px_2px_0_var(--line-strong)] relative z-0">
       <MapContainer 
         center={delhiCenter} 
         zoom={11} 
@@ -89,22 +89,22 @@ export const MapViewer: React.FC<MapViewerProps> = ({ tickets }) => {
         {tickets.map(t => (
           <Marker key={t._id} position={[t.location.coordinates[1], t.location.coordinates[0]]}>
             <Popup>
-              <div className="text-sm font-sans min-w-[150px]">
-                <strong className="block mb-1">{t.user_category}</strong>
-                <span className="text-xs font-mono text-gray-500 block mb-2">ID: {t._id.slice(-6)}</span>
+              <div className="text-sm font-body min-w-[150px] text-[var(--ink)]">
+                <strong className="block mb-1 font-display tracking-tight text-[15px]">{t.user_category}</strong>
+                <span className="text-[10px] font-mono text-[var(--ink-soft)] font-bold block mb-2 bg-[var(--paper-2)] border border-[var(--line-strong)] px-1 rounded-[2px] w-fit">ID: {t._id.slice(-6)}</span>
                 
-                <span className={`px-2 py-0.5 text-xs font-bold rounded-sm ${
-                  t.status.includes('Closed') ? 'bg-gray-200 text-gray-700' 
-                  : t.status.includes('High') || t.isEmergency ? 'bg-red-100 text-red-700' 
-                  : 'bg-teal-100 text-teal-800'
+                <span className={`px-2 py-0.5 text-[10px] font-bold rounded-[2px] uppercase tracking-wider border ${
+                  t.status.includes('Closed') ? 'bg-[var(--paper-2)] text-[var(--ink-soft)] border-[var(--line-strong)]' 
+                  : t.status.includes('High') || t.isEmergency ? 'bg-[rgba(162,59,46,0.1)] text-[var(--stamp)] border-[rgba(162,59,46,0.5)]' 
+                  : 'bg-[var(--teal-light)] text-white border-[var(--teal)]'
                 }`}>
                   {t.status}
                 </span>
                 
                 {t.isEmergency && (
-                  <p className="text-red-600 font-bold text-xs mt-2">! IMMEDIATE DANGER !</p>
+                  <p className="text-[var(--stamp)] font-bold text-[10px] uppercase tracking-widest mt-2 border border-[var(--stamp)] bg-[rgba(162,59,46,0.06)] px-1 py-0.5 text-center rounded-[2px]">! Immediate Danger</p>
                 )}
-                <p className="text-gray-500 text-xs mt-2 border-t pt-1">District: {t.district_id}</p>
+                <p className="text-[var(--ink-soft)] text-[11px] font-bold mt-2 pt-1 border-t-[1.5px] border-[var(--line-strong)]">District: {t.district_id}</p>
               </div>
             </Popup>
           </Marker>
