@@ -1,7 +1,10 @@
 import React, { useEffect } from 'react';
 import { MapContainer, TileLayer, useMap } from 'react-leaflet';
-import L from 'leaflet';
+import * as L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+
+// Vite/Leaflet.heat workaround: expose L to window before importing plugin
+(window as any).L = L;
 import 'leaflet.heat';
 
 interface MapViewerProps {

@@ -8,12 +8,9 @@ const router = express.Router();
 // GET /api/tickets/hotspots - Aggregation for Heatmap
 router.get('/hotspots', async (req, res) => {
   try {
-    const twoDaysAgo = new Date(Date.now() - 48 * 60 * 60 * 1000);
-    
     // Aggregate: Group by proximity (approximated by rounding coords)
-    // In a real prod environment we'd use $geoNear or H3 grids. For MVP, we'll just return raw points for Leaflet.heat
-    // If we want clustering on backend, we could group, but leaflet.heat handles raw points beautifully.
-    const tickets = await Ticket.find({ createdAt: { $gte: twoDaysAgo } }).select('location status');
+    // For MVP, we return raw points for all tickets so they always appear in demos
+    const tickets = await Ticket.find({}).select('location status');
     
     const points = tickets.map(t => [
       t.location.coordinates[1], // lat

@@ -262,9 +262,21 @@ export const AuthorityDashboard: React.FC = () => {
                   <div className="flex-1 flex flex-col gap-2">
                     <div className="flex justify-between items-start">
                       <div className="flex gap-2 items-center">
-                        <span className={`px-2.5 py-1 text-xs font-bold rounded-full ${ticket.status.includes('Closed') ? 'bg-gray-100 text-gray-600' : ticket.status.includes('High') || ticket.isEmergency ? 'bg-red-100 text-red-700' : 'bg-teal-100 text-teal-700'}`}>
-                          {ticket.status}
-                        </span>
+                        <select
+                          value={ticket.status}
+                          onChange={(e) => handleStatusUpdate(ticket._id, e.target.value)}
+                          className={`px-3 py-1 text-xs font-bold rounded-full border outline-none cursor-pointer appearance-none ${
+                            ticket.status.includes('Closed') ? 'bg-gray-100 text-gray-700 border-gray-300' 
+                            : ticket.status.includes('High') || ticket.isEmergency ? 'bg-red-100 text-red-700 border-red-300' 
+                            : 'bg-teal-100 text-teal-800 border-teal-300'
+                          }`}
+                        >
+                          <option value="New Reports">New Reports / Pending</option>
+                          <option value="Under Review">Under Review</option>
+                          <option value="Field Team Dispatched">Field Team Dispatched</option>
+                          <option value="Case Closed (CWC)">Case Closed (CWC)</option>
+                          <option value="Rejected">Dismissed (False Positive)</option>
+                        </select>
                         {ticket.isEmergency && <span className="px-2 py-1 bg-red-600 text-white text-xs font-bold rounded flex items-center gap-1"><AlertCircle className="w-3 h-3"/> Emergency</span>}
                       </div>
                       <span className="text-xs text-gray-500 font-mono">ID: {ticket._id.slice(-6)}</span>
