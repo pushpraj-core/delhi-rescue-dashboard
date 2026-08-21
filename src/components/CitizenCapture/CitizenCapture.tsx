@@ -229,7 +229,11 @@ export const CitizenCapture: React.FC = () => {
                   <h3 className="font-semibold text-[13px] mb-2">Category *</h3>
                   <div className="flex flex-col gap-2">
                     {['Traffic Intersection Begging', 'Hazardous Labor', 'Unattended Child'].map(cat => (
-                      <label key={cat} className={`flex items-center gap-3 p-3 border rounded-xl cursor-pointer transition-colors ${selectedCategory === cat ? 'border-[var(--teal)] bg-[var(--teal)]/5' : 'border-[var(--line)] bg-white/50 hover:bg-white/80'}`}>
+                      <label 
+                        key={cat} 
+                        onClick={() => setSelectedCategory(cat)}
+                        className={`flex items-center gap-3 p-3 border rounded-xl cursor-pointer transition-colors ${selectedCategory === cat ? 'border-[var(--teal)] bg-[var(--teal)]/5' : 'border-[var(--line)] bg-white/50 hover:bg-white/80'}`}
+                      >
                         <div className={`w-4 h-4 rounded-full border flex items-center justify-center ${selectedCategory === cat ? 'border-[var(--teal)] bg-[var(--teal)]' : 'border-[var(--line-strong)] bg-transparent'}`}>
                            {selectedCategory === cat && <div className="w-1.5 h-1.5 bg-white rounded-full"></div>}
                         </div>
