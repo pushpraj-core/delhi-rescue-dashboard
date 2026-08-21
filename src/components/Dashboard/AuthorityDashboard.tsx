@@ -97,7 +97,7 @@ export const AuthorityDashboard: React.FC = () => {
 
   const checkKhoyaPaya = async (ticketId: string) => {
     try {
-      const res = await fetch('/api/verify-khoya-paya', {
+      const res = await fetch('/api/tickets/verify-khoya-paya', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ticketId })
