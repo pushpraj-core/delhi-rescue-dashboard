@@ -60,7 +60,6 @@ const SortableTicketCard = ({ ticket, onClick, onStatusChange }: { ticket: Ticke
           {COLUMNS.map(col => (
             <option key={col} value={col}>{col}</option>
           ))}
-          <option value="Rejected">Dismissed</option>
         </select>
       </div>
     </div>

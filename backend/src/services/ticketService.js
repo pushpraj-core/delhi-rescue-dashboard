@@ -34,10 +34,7 @@ const ingestTicket = async (ticketData) => {
   const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000);
 
   // 3. Triage Logic Setup
-  let initialStatus = confidence_score < 60 ? 'Low-Confidence / Manual Review Required' : 'Pending Verification';
-  if (isEmergency) {
-    initialStatus = 'High Priority';
-  }
+  let initialStatus = 'New Reports';
 
   // 4. Find duplicate within 50 meters
   const existingTicket = await Ticket.findOne({
@@ -60,15 +57,11 @@ const ingestTicket = async (ticketData) => {
     // Upgrade confidence score if the new report is more confident
     if (confidence_score > existingTicket.confidence_score) {
       existingTicket.confidence_score = confidence_score;
-      // If previously low confidence, but now high, upgrade status
-      if (existingTicket.status === 'Low-Confidence / Manual Review Required' && confidence_score >= 60) {
-        existingTicket.status = 'Pending Verification';
-      }
     }
     
     // Elevate priority if the new duplicate report marks emergency
-    if (isEmergency && existingTicket.status !== 'High Priority') {
-      existingTicket.status = 'High Priority';
+    if (isEmergency) {
+      existingTicket.isEmergency = true;
     }
     
     // Merge new tags seamlessly

@@ -275,7 +275,6 @@ export const AuthorityDashboard: React.FC = () => {
                           <option value="Under Review">Under Review</option>
                           <option value="Field Team Dispatched">Field Team Dispatched</option>
                           <option value="Case Closed (CWC)">Case Closed (CWC)</option>
-                          <option value="Rejected">Dismissed (False Positive)</option>
                         </select>
                         {ticket.isEmergency && <span className="px-2 py-1 bg-red-600 text-white text-xs font-bold rounded flex items-center gap-1"><AlertCircle className="w-3 h-3"/> Emergency</span>}
                       </div>

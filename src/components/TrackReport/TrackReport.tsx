@@ -54,12 +54,12 @@ export const TrackReport: React.FC = () => {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'Pending Verification':
-      case 'Low-Confidence / Manual Review Required':
+      case 'New Reports':
+      case 'Under Review':
         return 'text-orange-600 bg-orange-100 border-orange-200';
-      case 'High Priority':
-        return 'text-red-600 bg-red-100 border-red-200';
-      case 'Rejected':
+      case 'Field Team Dispatched':
+        return 'text-blue-600 bg-blue-100 border-blue-200';
+      case 'Case Closed (CWC)':
         return 'text-gray-600 bg-gray-100 border-gray-200';
       default:
         return 'text-teal-600 bg-teal-100 border-teal-200';

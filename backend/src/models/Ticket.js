@@ -52,8 +52,8 @@ const ticketSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['Pending Verification', 'High Priority', 'Rejected', 'Low-Confidence / Manual Review Required'],
-    default: 'Pending Verification'
+    enum: ['New Reports', 'Under Review', 'Field Team Dispatched', 'Case Closed (CWC)'],
+    default: 'New Reports'
   },
   createdAt: {
     type: Date,
