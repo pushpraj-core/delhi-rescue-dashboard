@@ -1,27 +1,14 @@
 import * as tf from '@tensorflow/tfjs';
+import * as blazeface from '@tensorflow-models/blazeface';
 
 let detector: any = null;
 
-// Initialize a mock FaceDetector for the demo to bypass Vite build issues
+// Initialize real BlazeFace model for actual ML face detection
 export const initModel = async (): Promise<void> => {
   if (detector) return;
-  detector = {
-    estimateFaces: async (video: HTMLVideoElement) => {
-      // Fallback width/height if video hasn't loaded metadata to prevent 0-width DOMExceptions
-      const vWidth = video.videoWidth || 640;
-      const vHeight = video.videoHeight || 480;
-      
-      // Mock a detected face in the center of the video
-      return [{
-        box: {
-          xMin: vWidth / 4,
-          yMin: vHeight / 4,
-          width: vWidth / 2,
-          height: vHeight / 2
-        }
-      }];
-    }
-  };
+  // Ensure TensorFlow is ready before loading model
+  await tf.ready();
+  detector = await blazeface.load();
 };
 
 // Zero-leak execution: processes frame, extracts blob, destroys evidence
@@ -45,17 +32,25 @@ export const captureSecurely = async (
   ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
   try {
-    // 2. Perform inference inside tf.tidy to automatically clean up intermediate tensors
-    const faces = await detector.estimateFaces(video);
+    // 2. Perform real ML inference
+    const returnTensors = false;
+    const faces = await detector.estimateFaces(video, returnTensors);
     
-    // Simulate a YOLOv8 custom model scene confidence score.
-    // In production, this would be returned directly from the edge AI model based on child features/context.
-    // For now, we simulate a score between 40 and 99.
-    const scene_confidence_score = Math.floor(Math.random() * (99 - 40 + 1) + 40);
+    let maxProbability = 0;
 
     // 3. Apply Gaussian blur to each detected face region securely
     for (const face of faces) {
-      const { xMin, yMin, width, height } = face.box;
+      // BlazeFace returns probability as an array of 1 element
+      const probability = Array.isArray(face.probability) ? face.probability[0] : face.probability;
+      if (probability > maxProbability) {
+        maxProbability = probability;
+      }
+
+      // topLeft and bottomRight are arrays of [x, y]
+      const [xMin, yMin] = face.topLeft as [number, number];
+      const [xMax, yMax] = face.bottomRight as [number, number];
+      const width = xMax - xMin;
+      const height = yMax - yMin;
 
       // Extract the face region securely
       const faceRegion = ctx.getImageData(xMin, yMin, width, height);
@@ -75,6 +70,10 @@ export const captureSecurely = async (
         ctx.restore();
       }
     }
+
+    // Use the real face detection probability as the AI score (0-100)
+    // If no face is detected, we set it to 0, which correctly flags it as a low-confidence report.
+    const scene_confidence_score = Math.floor(maxProbability * 100);
 
     // 4. Securely extract Blob (Memory-safe)
     const blob = await new Promise<Blob>((resolve, reject) => {
