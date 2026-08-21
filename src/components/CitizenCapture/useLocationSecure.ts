@@ -33,12 +33,18 @@ export const useLocationSecure = () => {
           ) {
             resolve({ latitude, longitude });
           } else {
-            // Log securely, zero data leak
-            reject(
-              new Error(
-                "Access Denied: Your location is outside the authorized Delhi jurisdiction."
-              )
-            );
+            // DEV MOCK: If we are in development, automatically spoof location to Delhi (Connaught Place) for testing
+            if (import.meta.env.DEV) {
+              console.warn("DEV MODE: Spoofing location to Delhi (Connaught Place)");
+              resolve({ latitude: 28.6315, longitude: 77.2167 });
+            } else {
+              // Log securely, zero data leak
+              reject(
+                new Error(
+                  "Access Denied: Your location is outside the authorized Delhi jurisdiction."
+                )
+              );
+            }
           }
         },
         (error) => {

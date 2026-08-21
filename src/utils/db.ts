@@ -1,5 +1,5 @@
-import { get, set, update, del, entries } from 'idb-keyval';
-import { EncryptedPayload } from './crypto';
+import { get, update } from 'idb-keyval';
+import type { EncryptedPayload } from './crypto';
 
 export interface OfflineReport {
   id: string; // Unique ID for local tracking

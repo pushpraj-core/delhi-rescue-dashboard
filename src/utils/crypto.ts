@@ -57,7 +57,7 @@ export async function encryptImagePayload(
 
   // 3. Encrypt the Image Blob with AES-GCM
   const imageBuffer = await blob.arrayBuffer();
-  const iv = window.crypto.subtle.getRandomValues(new Uint8Array(12));
+  const iv = window.crypto.getRandomValues(new Uint8Array(12));
   const encryptedImageBuffer = await window.crypto.subtle.encrypt(
     { name: 'AES-GCM', iv },
     aesKey,
@@ -75,7 +75,7 @@ export async function encryptImagePayload(
   // 5. Convert everything to Base64 for database storage
   return {
     encryptedAesKey: arrayBufferToBase64(encryptedAesKeyBuffer),
-    iv: arrayBufferToBase64(iv),
+    iv: arrayBufferToBase64(iv.buffer),
     encryptedData: arrayBufferToBase64(encryptedImageBuffer)
   };
 }

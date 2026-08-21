@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Shield, Key, Eye, Lock, MapPin, AlertCircle } from 'lucide-react';
-import { decryptImagePayload, EncryptedPayload } from '../../utils/crypto';
+import type { EncryptedPayload } from '../../utils/crypto';
+import { decryptImagePayload } from '../../utils/crypto';
 import { demoPrivateKey } from '../../utils/demoKeys';
 
 interface Ticket {
