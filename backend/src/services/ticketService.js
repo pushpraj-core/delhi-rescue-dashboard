@@ -36,9 +36,10 @@ const ingestTicket = async (ticketData) => {
   // 3. Triage Logic Setup
   let initialStatus = 'New Reports';
 
-  // 4. Find duplicate within 50 meters
+  // 4. Find duplicate within 50 meters that is NOT closed
   const existingTicket = await Ticket.findOne({
     createdAt: { $gte: twoHoursAgo },
+    status: { $ne: 'Case Closed (CWC)' },
     location: {
       $near: {
         $geometry: {
