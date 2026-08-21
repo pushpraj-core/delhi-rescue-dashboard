@@ -33,7 +33,7 @@ export const Landing: React.FC = () => {
             <p className="lede" style={{ textAlign: 'center', margin: '0 auto' }}>No app to download. The moment you capture an image, an on-device model finds and blurs the face before anything is saved or sent. Only the report reaches a District Child Protection Unit.</p>
             <div className="hero-ctas" style={{ justifyContent: 'center' }}>
               <button onClick={() => navigate('/report')} className="btn btn-primary">Report Now →</button>
-              <a href="#how" className="btn btn-ghost">See how it works</a>
+              <a href="#how" className="btn btn-ghost-dark">See how it works</a>
             </div>
             <div className="hero-note" style={{ textAlign: 'center' }}>Works in your browser · Nothing saved to your camera roll · 30-second flow</div>
           </div>
