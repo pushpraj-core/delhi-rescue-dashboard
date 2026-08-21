@@ -166,7 +166,6 @@ export const AuthorityDashboard: React.FC = () => {
               onError={() => {
                 setGoogleAuthError('Google Login Failed. Please try again.');
               }}
-              useOneTap
             />
           </div>
         </div>
