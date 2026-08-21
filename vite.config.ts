@@ -16,6 +16,7 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg', 'icons.svg'],
+
       manifest: {
         name: 'Delhi Child Rescue Dashboard',
         short_name: 'DelhiRescue',
@@ -37,6 +38,7 @@ export default defineConfig({
         ]
       },
       workbox: {
+        maximumFileSizeToCacheInBytes: 5000000, // 5MB to accommodate TensorFlow JS models
         globPatterns: ['**/*.{js,css,html,ico,png,svg}']
       }
     })
