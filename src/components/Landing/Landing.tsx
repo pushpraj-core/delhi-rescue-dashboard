@@ -17,8 +17,8 @@ export const Landing: React.FC = () => {
             <a href="#impact">Impact</a>
           </div>
           <div className="nav-cta" style={{ alignItems: 'center' }}>
-            <button onClick={() => navigate('/track')} className="btn btn-ghost">Track Report</button>
-            <button onClick={() => navigate('/authority')} className="btn btn-ghost">Authority Login</button>
+            <button onClick={() => navigate('/track')} className="btn btn-ghost-dark">Track Report</button>
+            <button onClick={() => navigate('/authority')} className="btn btn-ghost-dark">Authority Login</button>
             <button onClick={() => navigate('/report')} className="btn btn-primary">Report Now</button>
             <img src="https://upload.wikimedia.org/wikipedia/commons/5/55/Emblem_of_India.svg" alt="Emblem of India" style={{ height: '36px', marginLeft: '12px' }} />
           </div>

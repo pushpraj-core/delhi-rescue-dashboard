@@ -62,20 +62,20 @@
 /* NAV */
 .landing-page nav{
   position:sticky; top:0; z-index:50;
-  background:rgba(15,27,45,0.92); backdrop-filter:blur(10px);
-  border-bottom:1px solid var(--line);
+  background:rgba(245,243,237,0.92); backdrop-filter:blur(10px);
+  border-bottom:1px solid var(--line-dark);
 }
 .landing-page nav .wrap{display:flex; align-items:center; justify-content:space-between; height:68px;}
 .landing-page .logo{
-  font-family:var(--font-display); font-size:21px; color:#fff; font-weight:600;
+  font-family:var(--font-display); font-size:21px; color:var(--ink); font-weight:600;
   display:flex; align-items:center; gap:9px; letter-spacing:0.01em;
 }
 .landing-page .logo .dot{width:9px;height:9px;border-radius:50%; background:var(--beacon);}
 .landing-page .nav-links{display:flex; gap:30px; align-items:center;}
 .landing-page .nav-links a{
-  font-size:14px; color:var(--mist); text-decoration:none; font-weight:500;
+  font-size:14px; color:var(--ink-soft); text-decoration:none; font-weight:500;
 }
-.landing-page .nav-links a:hover{color:#fff;}
+.landing-page .nav-links a:hover{color:var(--ink);}
 .landing-page .nav-cta{display:flex; gap:10px;}
 .landing-page .nav-cta .btn{padding:10px 16px; font-size:13.5px; white-space:nowrap;}
 
