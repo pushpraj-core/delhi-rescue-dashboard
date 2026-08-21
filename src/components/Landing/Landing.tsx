@@ -1,11 +1,10 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import './Landing.css';
 
-interface LandingProps {
-  onNavigate: (view: 'citizen' | 'authority') => void;
-}
+export const Landing: React.FC = () => {
+  const navigate = useNavigate();
 
-export const Landing: React.FC<LandingProps> = ({ onNavigate }) => {
   return (
     <div className="landing-page">
       <nav>
@@ -18,9 +17,9 @@ export const Landing: React.FC<LandingProps> = ({ onNavigate }) => {
             <a href="#impact">Impact</a>
           </div>
           <div className="nav-cta">
-            <button onClick={() => onNavigate('citizen')} className="btn btn-ghost">User Login</button>
-            <button onClick={() => onNavigate('authority')} className="btn btn-ghost">Authority Login</button>
-            <button onClick={() => onNavigate('citizen')} className="btn btn-primary">Report Now</button>
+            <button onClick={() => navigate('/track')} className="btn btn-ghost">Track Report</button>
+            <button onClick={() => navigate('/authority')} className="btn btn-ghost">Authority Login</button>
+            <button onClick={() => navigate('/report')} className="btn btn-primary">Report Now</button>
           </div>
         </div>
       </nav>
@@ -32,7 +31,7 @@ export const Landing: React.FC<LandingProps> = ({ onNavigate }) => {
             <h1>See a child in need?<br/>Report in seconds — <em>without the photo ever leaving your hands.</em></h1>
             <p className="lede">No app to download. The moment you capture an image, an on-device model finds and blurs the face before anything is saved or sent. Only the report reaches a District Child Protection Unit.</p>
             <div className="hero-ctas">
-              <button onClick={() => onNavigate('citizen')} className="btn btn-primary">Report Now →</button>
+              <button onClick={() => navigate('/report')} className="btn btn-primary">Report Now →</button>
               <a href="#how" className="btn btn-ghost">See how it works</a>
             </div>
             <div className="hero-note">Works in your browser · Nothing saved to your camera roll · 30-second flow</div>
@@ -222,9 +221,9 @@ export const Landing: React.FC<LandingProps> = ({ onNavigate }) => {
           <h2>No download. No compromise.<br/>Just report.</h2>
           <p>If you see a child in distress, you can act right now — from the browser you already have open.</p>
           <div className="hero-ctas">
-            <button onClick={() => onNavigate('citizen')} className="btn btn-primary">Report Now →</button>
-            <button onClick={() => onNavigate('citizen')} className="btn btn-ghost">User Login</button>
-            <button onClick={() => onNavigate('authority')} className="btn btn-ghost">Authority Login</button>
+            <button onClick={() => navigate('/report')} className="btn btn-primary">Report Now →</button>
+            <button onClick={() => navigate('/track')} className="btn btn-ghost">Track Report</button>
+            <button onClick={() => navigate('/authority')} className="btn btn-ghost">Authority Login</button>
           </div>
         </div>
       </section>

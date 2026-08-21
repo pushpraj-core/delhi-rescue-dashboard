@@ -1,26 +1,43 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Camera, MapPin, AlertCircle, ShieldCheck, RefreshCw, Send, AlertTriangle } from 'lucide-react';
+import { Camera, MapPin, AlertCircle, ShieldCheck, RefreshCw, Send, AlertTriangle, Tag, CheckSquare, Square, CheckCircle, Copy } from 'lucide-react';
 import { useSecureCamera } from './useSecureCamera';
 import { useLocationSecure } from './useLocationSecure';
 import { initModel, captureSecurely } from './inference';
 import { encryptImagePayload } from '../../utils/crypto';
 import { demoPublicKey } from '../../utils/demoKeys';
+import { useNavigate } from 'react-router-dom';
+
+const QUICK_TAGS = [
+  'Traffic Intersection',
+  'Construction Site',
+  'Railway Station',
+  'Bus Stand',
+  'Market Area',
+  'Highway Dhaba'
+];
 
 export const CitizenCapture: React.FC = () => {
   const { startCamera, stopCamera, videoRef, error: camError } = useSecureCamera();
   const { getSecureLocation } = useLocationSecure();
+  const navigate = useNavigate();
   
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [modelReady, setModelReady] = useState(false);
   const [isCapturing, setIsCapturing] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [successMsg, setSuccessMsg] = useState<string | null>(null);
   
   const [captureBlob, setCaptureBlob] = useState<Blob | null>(null);
   const [location, setLocation] = useState<{ latitude: number; longitude: number } | null>(null);
   const [confidenceScore, setConfidenceScore] = useState<number | null>(null);
+  
   const [selectedCategory, setSelectedCategory] = useState<string>('');
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [isEmergency, setIsEmergency] = useState(false);
+
+  // Success Modal State
+  const [trackingId, setTrackingId] = useState<string | null>(null);
+  const [isOfflineSave, setIsOfflineSave] = useState(false);
 
   // Initialize TensorFlow and Camera on mount
   useEffect(() => {
@@ -49,8 +66,9 @@ export const CitizenCapture: React.FC = () => {
 
     setIsCapturing(true);
     setError(null);
-    setSuccessMsg(null);
     setSelectedCategory('');
+    setSelectedTags([]);
+    setIsEmergency(false);
 
     try {
       // 1. Verify Geofence First
@@ -81,9 +99,18 @@ export const CitizenCapture: React.FC = () => {
     setLocation(null);
     setConfidenceScore(null);
     setError(null);
-    setSuccessMsg(null);
+    setTrackingId(null);
+    setIsOfflineSave(false);
     setSelectedCategory('');
+    setSelectedTags([]);
+    setIsEmergency(false);
     await startCamera();
+  };
+
+  const toggleTag = (tag: string) => {
+    setSelectedTags(prev => 
+      prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]
+    );
   };
 
   const handleSubmit = async () => {
@@ -101,7 +128,9 @@ export const CitizenCapture: React.FC = () => {
         latitude: location.latitude,
         encryptedPayload, // E2EE Payload
         confidence_score: confidenceScore,
-        user_category: selectedCategory
+        user_category: selectedCategory,
+        tags: selectedTags,
+        isEmergency
       };
 
       try {
@@ -117,14 +146,18 @@ export const CitizenCapture: React.FC = () => {
           throw new Error('Server rejected submission');
         }
 
-        alert('Secure report submitted to Authorities successfully.');
-        setSuccessMsg('Report submitted securely!');
+        const data = await response.json();
+        setTrackingId(data.ticket.trackingId);
+        setIsOfflineSave(false);
       } catch (networkError) {
         // Offline Fallback
         const { saveOfflineReport } = await import('../../utils/db');
-        await saveOfflineReport(payload);
-        alert('You are currently offline. Your encrypted report has been saved securely to your device and will automatically sync when connection is restored.');
-        setSuccessMsg('Report saved offline. Will sync when online.');
+        const offlineId = await saveOfflineReport(payload);
+        
+        // When offline, we don't have a real tracking ID yet from the backend, 
+        // but we can generate a temporary one or instruct the user to sync later.
+        setTrackingId(`OFFLINE-${offlineId.split('_')[2].toUpperCase()}`);
+        setIsOfflineSave(true);
       }
       
       // Clear sensitive memory strictly
@@ -132,6 +165,8 @@ export const CitizenCapture: React.FC = () => {
       setLocation(null);
       setConfidenceScore(null);
       setSelectedCategory('');
+      setSelectedTags([]);
+      setIsEmergency(false);
 
     } catch (err: any) {
       setError(err.message);
@@ -140,10 +175,52 @@ export const CitizenCapture: React.FC = () => {
     }
   };
 
+  if (trackingId) {
+    return (
+      <div className="max-w-md mx-auto p-8 bg-white min-h-[500px] flex flex-col items-center justify-center rounded-2xl shadow-xl border border-gray-100 text-center">
+        <CheckCircle className="w-16 h-16 text-teal-600 mb-6" />
+        <h2 className="text-2xl font-bold text-gray-800 mb-2">Report Submitted</h2>
+        
+        {isOfflineSave ? (
+          <p className="text-orange-600 font-medium mb-6">
+            You are offline. Report securely queued and will automatically sync when connection is restored.
+          </p>
+        ) : (
+          <p className="text-gray-600 mb-6">
+            Your report has been securely transmitted to the District Child Protection Unit.
+          </p>
+        )}
+
+        <div className="bg-gray-50 border border-gray-200 rounded-xl p-6 w-full mb-8">
+          <p className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-2">Your Anonymous Tracking ID</p>
+          <div className="text-4xl font-mono font-bold text-gray-900 tracking-widest flex items-center justify-center gap-3">
+            {trackingId}
+          </div>
+          <p className="text-xs text-gray-500 mt-4">Save this ID. You can use it to track the status of this report anonymously.</p>
+        </div>
+
+        <div className="flex gap-4 w-full">
+          <button
+            onClick={() => navigate('/track')}
+            className="flex-1 py-3 bg-white border border-gray-300 text-gray-700 font-semibold rounded-lg hover:bg-gray-50 transition"
+          >
+            Track Status
+          </button>
+          <button
+            onClick={handleRetake}
+            className="flex-1 py-3 bg-teal-600 text-white font-semibold rounded-lg hover:bg-teal-700 transition"
+          >
+            New Report
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="max-w-md mx-auto p-4 bg-white min-h-[500px] flex flex-col rounded-2xl shadow-xl border border-gray-100 overflow-hidden relative">
-      <div className="flex items-center gap-2 mb-4 p-2 bg-blue-50 text-blue-800 rounded-lg">
-        <ShieldCheck className="w-5 h-5 text-blue-600" />
+    <div className="max-w-md mx-auto p-4 bg-white min-h-[500px] max-h-[85vh] flex flex-col rounded-2xl shadow-xl border border-gray-100 overflow-y-auto relative">
+      <div className="flex items-center gap-2 mb-4 p-2 bg-teal-50 text-teal-800 rounded-lg shrink-0">
+        <ShieldCheck className="w-5 h-5 text-teal-600" />
         <span className="font-semibold text-sm">Govt. Secure Capture active</span>
       </div>
 
@@ -154,17 +231,10 @@ export const CitizenCapture: React.FC = () => {
         </div>
       )}
 
-      {successMsg && (
-        <div className="mb-4 p-3 bg-green-50 text-green-700 rounded-lg flex items-start gap-2">
-          <ShieldCheck className="w-5 h-5 mt-0.5 shrink-0" />
-          <p className="text-sm font-medium">{successMsg}</p>
-        </div>
-      )}
-
       {/* Hidden processing canvas */}
       <canvas ref={canvasRef} className="hidden" />
 
-      {!captureBlob && !successMsg ? (
+      {!captureBlob ? (
         <div className="relative rounded-xl overflow-hidden bg-black aspect-[3/4] flex items-center justify-center">
           <video
             ref={videoRef}
@@ -183,18 +253,18 @@ export const CitizenCapture: React.FC = () => {
           <button
             onClick={handleCapture}
             disabled={!modelReady || isCapturing}
-            className="absolute bottom-6 left-1/2 -translate-x-1/2 w-16 h-16 bg-white rounded-full border-4 border-blue-500 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed z-20 flex items-center justify-center hover:scale-105 transition-transform"
+            className="absolute bottom-6 left-1/2 -translate-x-1/2 w-16 h-16 bg-white rounded-full border-4 border-teal-500 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed z-20 flex items-center justify-center hover:scale-105 transition-transform"
           >
             {isCapturing ? (
-              <RefreshCw className="w-6 h-6 animate-spin text-blue-600" />
+              <RefreshCw className="w-6 h-6 animate-spin text-teal-600" />
             ) : (
-              <Camera className="w-6 h-6 text-blue-600" />
+              <Camera className="w-6 h-6 text-teal-600" />
             )}
           </button>
         </div>
-      ) : captureBlob ? (
+      ) : (
         <div className="flex flex-col gap-4">
-          <div className="rounded-xl overflow-hidden bg-gray-100 aspect-[3/4] relative">
+          <div className="rounded-xl overflow-hidden bg-gray-100 aspect-[3/4] relative max-h-[300px]">
             <img
               src={URL.createObjectURL(captureBlob)}
               alt="Processed Secure Capture"
@@ -206,27 +276,60 @@ export const CitizenCapture: React.FC = () => {
             </div>
           </div>
           
-          <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg flex flex-col gap-3">
-            <h3 className="font-semibold text-gray-800 text-sm flex items-center gap-2">
-              <AlertTriangle className="w-4 h-4 text-orange-500" />
-              Mandatory Verification
-            </h3>
-            <p className="text-xs text-gray-500">Select the context of the situation to verify this report.</p>
-            
-            <div className="flex flex-col gap-2">
-              {['Traffic Intersection Begging', 'Hazardous Labor', 'Unattended Child'].map(cat => (
-                <label key={cat} className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${selectedCategory === cat ? 'bg-blue-50 border-blue-500' : 'bg-white border-gray-200 hover:bg-gray-50'}`}>
-                  <input 
-                    type="radio" 
-                    name="category" 
-                    value={cat}
-                    checked={selectedCategory === cat}
-                    onChange={(e) => setSelectedCategory(e.target.value)}
-                    className="w-4 h-4 text-blue-600 focus:ring-blue-500"
-                  />
-                  <span className="text-sm font-medium text-gray-700">{cat}</span>
-                </label>
-              ))}
+          <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg flex flex-col gap-4">
+            {/* Emergency Toggle */}
+            <label className="flex items-center gap-3 p-3 bg-red-50 border border-red-200 rounded-lg cursor-pointer hover:bg-red-100 transition">
+              {isEmergency ? <CheckSquare className="w-5 h-5 text-red-600" /> : <Square className="w-5 h-5 text-red-400" />}
+              <span className="text-sm font-bold text-red-700">Immediate Physical Danger</span>
+              <input 
+                type="checkbox" 
+                className="hidden" 
+                checked={isEmergency} 
+                onChange={(e) => setIsEmergency(e.target.checked)} 
+              />
+            </label>
+
+            {/* Main Category */}
+            <div>
+              <h3 className="font-semibold text-gray-800 text-sm mb-2">Primary Category *</h3>
+              <div className="flex flex-col gap-2">
+                {['Traffic Intersection Begging', 'Hazardous Labor', 'Unattended Child'].map(cat => (
+                  <label key={cat} className={`flex items-center gap-3 p-2.5 rounded-lg border cursor-pointer transition-colors ${selectedCategory === cat ? 'bg-teal-50 border-teal-500' : 'bg-white border-gray-200 hover:bg-gray-50'}`}>
+                    <input 
+                      type="radio" 
+                      name="category" 
+                      value={cat}
+                      checked={selectedCategory === cat}
+                      onChange={(e) => setSelectedCategory(e.target.value)}
+                      className="w-4 h-4 text-teal-600 focus:ring-teal-500"
+                    />
+                    <span className="text-sm font-medium text-gray-700">{cat}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            {/* Quick Tags */}
+            <div>
+              <h3 className="font-semibold text-gray-800 text-sm mb-2 flex items-center gap-1">
+                <Tag className="w-4 h-4 text-gray-500" />
+                Context Tags (Optional)
+              </h3>
+              <div className="flex flex-wrap gap-2">
+                {QUICK_TAGS.map(tag => (
+                  <button
+                    key={tag}
+                    onClick={() => toggleTag(tag)}
+                    className={`px-3 py-1.5 text-xs font-semibold rounded-full border transition ${
+                      selectedTags.includes(tag) 
+                        ? 'bg-teal-100 border-teal-300 text-teal-800' 
+                        : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
+                    }`}
+                  >
+                    {tag}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
 
@@ -243,17 +346,13 @@ export const CitizenCapture: React.FC = () => {
             <button
               onClick={handleSubmit}
               disabled={!selectedCategory || isSubmitting}
-              className="flex-1 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:bg-gray-300"
+              className="flex-1 py-3 bg-teal-600 hover:bg-teal-700 text-white font-semibold rounded-lg transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:bg-gray-300"
             >
               {isSubmitting ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
               Submit Securely
             </button>
           </div>
         </div>
-      ) : (
-        <button onClick={handleRetake} className="mt-8 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700">
-          Capture New Incident
-        </button>
       )}
     </div>
   );

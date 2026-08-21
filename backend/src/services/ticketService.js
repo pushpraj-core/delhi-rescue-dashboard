@@ -3,6 +3,8 @@ const { point } = require('@turf/helpers');
 const Ticket = require('../models/Ticket');
 const delhiDistricts = require('../data/delhi_districts.json');
 
+const crypto = require('crypto');
+
 const getDistrictForLocation = (longitude, latitude) => {
   const pt = point([longitude, latitude]);
   for (const feature of delhiDistricts.features) {
@@ -13,12 +15,17 @@ const getDistrictForLocation = (longitude, latitude) => {
   return 'UNASSIGNED';
 };
 
+const generateTrackingId = () => {
+  // Generate 6-digit alphanumeric uppercase ID
+  return crypto.randomBytes(3).toString('hex').toUpperCase();
+};
+
 /**
  * Ingests a new ticket. Checks for duplicates within 50m in the last 2 hours.
  * If duplicate, increments reportCount. Else creates new ticket.
  */
 const ingestTicket = async (ticketData) => {
-  const { longitude, latitude, encryptedPayload, confidence_score, user_category } = ticketData;
+  const { longitude, latitude, encryptedPayload, confidence_score, user_category, tags, isEmergency } = ticketData;
 
   // 1. Assign District
   const district_id = getDistrictForLocation(longitude, latitude);
@@ -27,7 +34,10 @@ const ingestTicket = async (ticketData) => {
   const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000);
 
   // 3. Triage Logic Setup
-  const initialStatus = confidence_score < 60 ? 'Low-Confidence / Manual Review Required' : 'Pending Verification';
+  let initialStatus = confidence_score < 60 ? 'Low-Confidence / Manual Review Required' : 'Pending Verification';
+  if (isEmergency) {
+    initialStatus = 'High Priority';
+  }
 
   // 4. Find duplicate within 50 meters
   const existingTicket = await Ticket.findOne({
@@ -55,6 +65,19 @@ const ingestTicket = async (ticketData) => {
         existingTicket.status = 'Pending Verification';
       }
     }
+    
+    // Elevate priority if the new duplicate report marks emergency
+    if (isEmergency && existingTicket.status !== 'High Priority') {
+      existingTicket.status = 'High Priority';
+    }
+    
+    // Merge new tags seamlessly
+    if (tags && tags.length > 0) {
+      const uniqueTags = new Set([...existingTicket.tags, ...tags]);
+      existingTicket.tags = Array.from(uniqueTags);
+    }
+    
+    if (isEmergency) existingTicket.isEmergency = true;
 
     await existingTicket.save();
     return {
@@ -64,15 +87,20 @@ const ingestTicket = async (ticketData) => {
   }
 
   // 5. No duplicate, create new Case File
+  const trackingId = generateTrackingId();
+  
   const newTicket = new Ticket({
     location: {
       type: 'Point',
       coordinates: [longitude, latitude]
     },
     district_id,
+    trackingId,
     encryptedPayload,
     confidence_score,
     user_category,
+    tags: tags || [],
+    isEmergency: isEmergency || false,
     status: initialStatus
   });
 

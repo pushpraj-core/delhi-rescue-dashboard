@@ -10,6 +10,8 @@ export interface OfflineReport {
     encryptedPayload: EncryptedPayload;
     confidence_score: number;
     user_category: string;
+    tags?: string[];
+    isEmergency?: boolean;
   };
 }
 

@@ -18,6 +18,12 @@ const ticketSchema = new mongoose.Schema({
     required: false,
     default: 'UNASSIGNED'
   },
+  trackingId: {
+    type: String,
+    required: true,
+    unique: true,
+    index: true
+  },
   reportCount: {
     type: Number,
     default: 1
@@ -35,6 +41,14 @@ const ticketSchema = new mongoose.Schema({
     type: String,
     enum: ['Traffic Intersection Begging', 'Hazardous Labor', 'Unattended Child'],
     required: true
+  },
+  tags: {
+    type: [String],
+    default: []
+  },
+  isEmergency: {
+    type: Boolean,
+    default: false
   },
   status: {
     type: String,
