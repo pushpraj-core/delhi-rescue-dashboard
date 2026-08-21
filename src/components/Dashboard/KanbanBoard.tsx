@@ -22,7 +22,7 @@ const normalizeStatus = (status: string) => {
   return 'New Reports';
 };
 
-const SortableTicketCard = ({ ticket, onClick }: { ticket: Ticket, onClick: () => void }) => {
+const SortableTicketCard = ({ ticket, onClick, onStatusChange }: { ticket: Ticket, onClick: () => void, onStatusChange: (id: string, status: string) => void }) => {
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: ticket._id });
 
   const style = {
@@ -36,19 +36,32 @@ const SortableTicketCard = ({ ticket, onClick }: { ticket: Ticket, onClick: () =
       style={style}
       {...attributes}
       {...listeners}
-      onClick={onClick}
       className="bg-white p-3 rounded-lg shadow-sm border border-gray-200 cursor-grab active:cursor-grabbing hover:shadow-md mb-2"
     >
-      <div className="flex justify-between items-start mb-2">
+      <div className="flex justify-between items-start mb-2" onClick={onClick}>
         <span className="text-xs font-mono text-gray-500">ID: {ticket._id.slice(-6)}</span>
         {ticket.confidence_score < 60 && (
           <AlertCircle className="w-4 h-4 text-orange-500" />
         )}
       </div>
-      <h4 className="font-semibold text-gray-800 text-sm mb-2">{ticket.user_category}</h4>
-      <div className="flex items-center gap-1 text-xs text-gray-600">
-        <MapPin className="w-3 h-3 text-blue-500" />
-        DCPU {ticket.district_id}
+      <h4 className="font-semibold text-gray-800 text-sm mb-2" onClick={onClick}>{ticket.user_category}</h4>
+      <div className="flex justify-between items-center mt-2 border-t pt-2 border-gray-100">
+        <div className="flex items-center gap-1 text-xs text-gray-600" onClick={onClick}>
+          <MapPin className="w-3 h-3 text-blue-500" />
+          DCPU {ticket.district_id}
+        </div>
+        <select
+          value={ticket.status}
+          onChange={(e) => onStatusChange(ticket._id, e.target.value)}
+          onClick={(e) => e.stopPropagation()} // Prevent dragging when clicking dropdown
+          onPointerDown={(e) => e.stopPropagation()} // Prevent dnd-kit from intercepting pointer
+          className="text-[10px] p-1 rounded border border-gray-200 bg-gray-50 text-gray-700 outline-none cursor-pointer w-24"
+        >
+          {COLUMNS.map(col => (
+            <option key={col} value={col}>{col}</option>
+          ))}
+          <option value="Rejected">Dismissed</option>
+        </select>
       </div>
     </div>
   );
@@ -111,7 +124,7 @@ export const KanbanBoard = ({ rawTickets, onTicketUpdate, onTicketClick }: { raw
               <div id={col} className="p-3 flex-1 overflow-y-auto">
                 <SortableContext id={col} items={colTickets.map(t => t._id)} strategy={verticalListSortingStrategy}>
                   {colTickets.map(ticket => (
-                    <SortableTicketCard key={ticket._id} ticket={ticket} onClick={() => onTicketClick(ticket)} />
+                    <SortableTicketCard key={ticket._id} ticket={ticket} onClick={() => onTicketClick(ticket)} onStatusChange={updateTicketStatus} />
                   ))}
                   {colTickets.length === 0 && (
                     <div className="h-20 flex items-center justify-center border-2 border-dashed border-gray-200 rounded-lg text-gray-400 text-sm">

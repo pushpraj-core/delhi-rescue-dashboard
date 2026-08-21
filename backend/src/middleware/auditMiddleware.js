@@ -3,8 +3,8 @@ const AuditLog = require('../models/AuditLog');
 const logAction = (action) => {
   return async (req, res, next) => {
     try {
-      const ticketId = req.params.id || req.body.ticketId;
-      const officerId = req.body.officerId || req.headers['x-officer-id'] || 'Nodal_Officer_DL_01';
+      const ticketId = req.params.id || (req.body && req.body.ticketId);
+      const officerId = (req.body && req.body.officerId) || req.headers['x-officer-id'] || 'Nodal_Officer_DL_01';
       
       const logEntry = new AuditLog({
         action,

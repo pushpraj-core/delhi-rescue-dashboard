@@ -213,8 +213,8 @@ export const AuthorityDashboard: React.FC = () => {
           {/* TAB 2: Live Heatmap */}
           {activeTab === 'map' && (
             <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
-              <h3 className="font-semibold text-gray-800 mb-4 flex items-center gap-2"><MapPin className="w-5 h-5 text-red-500"/> Real-time Incident Hotspots</h3>
-              <MapViewer hotspots={hotspots} />
+              <h3 className="font-semibold text-gray-800 mb-4 flex items-center gap-2"><MapPin className="w-5 h-5 text-red-500"/> Real-time Interactive Hotspots</h3>
+              <MapViewer tickets={tickets} />
             </div>
           )}
 
