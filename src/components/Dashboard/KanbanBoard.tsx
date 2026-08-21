@@ -36,17 +36,17 @@ const SortableTicketCard = ({ ticket, onClick, onStatusChange }: { ticket: Ticke
       style={style}
       {...attributes}
       {...listeners}
-      className="bg-[var(--paper)] p-3 rounded-[3px] border-[1.5px] border-[var(--ink)] shadow-[2px_2px_0_var(--line-strong)] cursor-grab active:cursor-grabbing hover:shadow-[4px_4px_0_var(--line-strong)] hover:-translate-y-[1px] transition-all mb-3"
+      className="bg-white/90 backdrop-blur p-3 rounded-xl border border-[var(--line)] shadow-sm cursor-grab active:cursor-grabbing hover:shadow-md hover:-translate-y-[1px] transition-all mb-3"
     >
       <div className="flex justify-between items-start mb-2" onClick={onClick}>
-        <span className="text-[11px] font-mono font-bold text-[var(--ink-soft)] bg-[var(--paper-2)] border border-[var(--line-strong)] px-1.5 py-0.5 rounded-[2px]">ID: {ticket._id.slice(-6)}</span>
+        <span className="text-[10px] font-mono font-bold text-[var(--ink-soft)] bg-[var(--line)]/10 px-1.5 py-0.5 rounded-md">ID: {ticket._id.slice(-6)}</span>
         {ticket.confidence_score < 60 && (
           <AlertCircle className="w-4 h-4 text-[var(--stamp)]" />
         )}
       </div>
-      <h4 className="font-display font-bold text-[var(--ink)] text-[14px] mb-2 leading-tight" onClick={onClick}>{ticket.user_category}</h4>
-      <div className="flex justify-between items-center mt-3 pt-3 border-t-[1.5px] border-[var(--line-strong)]">
-        <div className="flex items-center gap-1 text-[11px] font-bold text-[var(--ink-soft)] uppercase tracking-wider" onClick={onClick}>
+      <h4 className="font-display font-semibold text-[var(--ink)] text-[14px] mb-2 leading-tight" onClick={onClick}>{ticket.user_category}</h4>
+      <div className="flex justify-between items-center mt-3 pt-3 border-t border-[var(--line)]">
+        <div className="flex items-center gap-1 text-[11px] font-semibold text-[var(--ink-soft)] tracking-wider" onClick={onClick}>
           <MapPin className="w-3 h-3 text-[var(--teal)]" />
           DCPU {ticket.district_id}
         </div>
@@ -55,7 +55,7 @@ const SortableTicketCard = ({ ticket, onClick, onStatusChange }: { ticket: Ticke
           onChange={(e) => onStatusChange(ticket._id, e.target.value)}
           onClick={(e) => e.stopPropagation()} // Prevent dragging when clicking dropdown
           onPointerDown={(e) => e.stopPropagation()} // Prevent dnd-kit from intercepting pointer
-          className="text-[10px] font-bold p-1 rounded-[2px] border-[1.5px] border-[var(--ink)] bg-white text-[var(--ink)] outline-none cursor-pointer w-[110px] uppercase tracking-wider"
+          className="text-[10px] font-semibold p-1 rounded-md border border-[var(--line)] bg-white text-[var(--ink)] outline-none cursor-pointer w-[110px] uppercase tracking-wider"
         >
           {COLUMNS.map(col => (
             <option key={col} value={col}>{col}</option>
@@ -109,15 +109,15 @@ export const KanbanBoard = ({ rawTickets, onTicketUpdate, onTicketClick }: { raw
   };
 
   return (
-    <div className="flex gap-4 overflow-x-auto pb-4">
+    <div className="flex gap-4 overflow-x-auto pb-4 pt-2 px-2 -mx-2">
       <DndContext sensors={sensors} collisionDetection={closestCorners} onDragEnd={handleDragEnd}>
         {COLUMNS.map(col => {
           const colTickets = tickets.filter(t => t.status === col);
           return (
-            <div key={col} className="w-72 shrink-0 bg-[var(--paper-2)] border-[1.5px] border-[var(--ink)] shadow-[4px_4px_0_var(--line-strong)] rounded-[3px] flex flex-col max-h-[600px]">
-              <div className="p-3 border-b-[1.5px] border-[var(--ink)] bg-[var(--paper)] rounded-t-[2px] flex justify-between items-center">
-                <h3 className="font-display font-bold text-[var(--ink)] text-[14px]">{col}</h3>
-                <span className="bg-[var(--ink)] text-white text-[10px] py-0.5 px-2 rounded-full font-bold">{colTickets.length}</span>
+            <div key={col} className="w-72 shrink-0 bg-white/40 backdrop-blur-md border border-[var(--line)] shadow-sm rounded-xl flex flex-col max-h-[600px]">
+              <div className="p-3 border-b border-[var(--line)] bg-white/50 rounded-t-xl flex justify-between items-center">
+                <h3 className="font-display font-semibold text-[var(--ink)] text-[14px]">{col}</h3>
+                <span className="bg-[var(--teal)]/10 text-[var(--teal)] text-[10px] py-0.5 px-2 rounded-full font-bold">{colTickets.length}</span>
               </div>
               
               <div id={col} className="p-3 flex-1 overflow-y-auto">
@@ -126,7 +126,7 @@ export const KanbanBoard = ({ rawTickets, onTicketUpdate, onTicketClick }: { raw
                     <SortableTicketCard key={ticket._id} ticket={ticket} onClick={() => onTicketClick(ticket)} onStatusChange={updateTicketStatus} />
                   ))}
                   {colTickets.length === 0 && (
-                    <div className="h-20 flex items-center justify-center border-2 border-dashed border-[var(--line-strong)] rounded-[2px] text-[var(--ink-soft)] text-[12px] font-bold uppercase tracking-wider">
+                    <div className="h-20 flex items-center justify-center border-2 border-dashed border-[var(--line)] rounded-xl text-[var(--ink-soft)] text-[11px] font-bold uppercase tracking-wider">
                       Drop here
                     </div>
                   )}

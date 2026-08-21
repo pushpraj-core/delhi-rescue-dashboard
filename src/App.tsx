@@ -25,18 +25,22 @@ const Header = () => {
         </h1>
       </div>
       <div className="flex gap-2">
-        <Link
-          to="/report"
-          className={`px-3 py-1.5 text-sm font-semibold rounded-md transition ${location.pathname === '/report' ? 'bg-teal-50 text-teal-700' : 'text-gray-600 hover:bg-gray-100'}`}
-        >
-          Report
-        </Link>
-        <Link
-          to="/track"
-          className={`px-3 py-1.5 text-sm font-semibold rounded-md transition ${location.pathname === '/track' ? 'bg-teal-50 text-teal-700' : 'text-gray-600 hover:bg-gray-100'}`}
-        >
-          Track
-        </Link>
+        {location.pathname !== '/authority' && (
+          <>
+            <Link
+              to="/report"
+              className={`px-3 py-1.5 text-sm font-semibold rounded-md transition ${location.pathname === '/report' ? 'bg-teal-50 text-teal-700' : 'text-gray-600 hover:bg-gray-100'}`}
+            >
+              Report
+            </Link>
+            <Link
+              to="/track"
+              className={`px-3 py-1.5 text-sm font-semibold rounded-md transition ${location.pathname === '/track' ? 'bg-teal-50 text-teal-700' : 'text-gray-600 hover:bg-gray-100'}`}
+            >
+              Track
+            </Link>
+          </>
+        )}
         <Link
           to="/authority"
           className={`px-3 py-1.5 text-sm font-semibold rounded-md transition ${location.pathname === '/authority' ? 'bg-teal-50 text-teal-700' : 'text-gray-600 hover:bg-gray-100'}`}

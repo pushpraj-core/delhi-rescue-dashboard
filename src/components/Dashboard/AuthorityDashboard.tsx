@@ -129,22 +129,22 @@ export const AuthorityDashboard: React.FC = () => {
   if (!isAuthenticated) {
     return (
       <div className="bg-dotted-paper min-h-[calc(100vh-64px)] flex flex-col justify-center items-center font-body text-[var(--ink)] pb-10">
-        <div className="w-full max-w-xl mx-auto p-8 bg-[var(--card)] rounded-[3px] border-[1.5px] border-[var(--ink)] shadow-[6px_6px_0_var(--line-strong)]">
+        <div className="w-full max-w-xl mx-auto p-8 bg-white/60 backdrop-blur-md rounded-xl border border-[var(--line)] shadow-sm">
           <Shield className="w-16 h-16 text-[var(--teal)] mb-6" />
           <h2 className="text-[24px] font-display font-bold text-[var(--ink)] mb-2 tracking-tight">Secure Nodal Officer Login</h2>
           <p className="text-[14px] text-[var(--ink-soft)] mb-8">
             Provide your RSA Private Key to access the E2EE Encrypted Incident Dashboard.
           </p>
-          {error && <div className="mb-4 p-3 border border-[rgba(162,59,46,0.4)] bg-[rgba(162,59,46,0.06)] text-[var(--stamp)] rounded-[2px] text-[13px]">{error}</div>}
+          {error && <div className="mb-4 p-3 border border-[rgba(162,59,46,0.2)] bg-[rgba(162,59,46,0.05)] backdrop-blur text-[var(--stamp)] rounded-xl text-[13px]">{error}</div>}
           <form onSubmit={handleLogin} className="w-full flex flex-col gap-5">
             <textarea
               value={privateKeyInput}
               onChange={(e) => setPrivateKeyInput(e.target.value)}
-              className="w-full h-48 p-4 font-mono text-[11px] bg-white border-[1.5px] border-[var(--ink)] rounded-[2px] focus:outline-none focus:ring-2 focus:ring-[var(--teal)]"
+              className="w-full h-48 p-4 font-mono text-[11px] bg-white/80 border border-[var(--line)] rounded-xl focus:outline-none focus:ring-2 focus:ring-[var(--teal)] transition-shadow"
               placeholder="Paste JWK Private Key JSON here..."
               required
             />
-            <button type="submit" className="w-full py-3 bg-[var(--ink)] hover:bg-[var(--ink-soft)] text-white font-bold rounded-[2px] flex items-center justify-center gap-2 transition-colors border-[1.5px] border-[var(--ink)] shadow-[3px_3px_0_var(--saffron)] hover:translate-y-[2px] hover:shadow-[1px_1px_0_var(--saffron)]">
+            <button type="submit" className="w-full py-3 bg-[var(--ink)] hover:bg-[var(--ink-soft)] text-white font-bold rounded-xl flex items-center justify-center gap-2 transition-colors shadow-sm">
               <Key className="w-5 h-5" /> Authenticate & Access Dashboard
             </button>
           </form>
@@ -158,16 +158,16 @@ export const AuthorityDashboard: React.FC = () => {
       <div className="max-w-[1200px] mx-auto px-6">
         
         {/* Header & Controls */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4 bg-[var(--card)] p-5 border-[1.5px] border-[var(--ink)] rounded-[3px] shadow-[4px_4px_0_var(--line-strong)]">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4 bg-white/40 backdrop-blur-md p-5 border border-[var(--line)] rounded-xl shadow-sm">
           <div>
             <h1 className="text-[22px] font-display font-bold flex items-center gap-2 tracking-tight">
               <Shield className="w-6 h-6 text-[var(--teal)]" /> Nodal Operations Center
             </h1>
             <div className="flex items-center gap-2 mt-2">
-              <div className="font-mono text-[10.5px] bg-[var(--paper-2)] border border-[var(--line-strong)] px-2 py-0.5 rounded-[2px] text-[var(--ink-soft)] uppercase tracking-wider">
+              <div className="font-mono text-[10px] bg-white/60 border border-[var(--line)] px-2 py-0.5 rounded-full text-[var(--ink-soft)] uppercase tracking-wider">
                 End-to-End Encrypted
               </div>
-              <div className="font-mono text-[10.5px] bg-[var(--teal)] border border-[var(--ink)] text-white px-2 py-0.5 rounded-[2px] uppercase tracking-wider">
+              <div className="font-mono text-[10px] bg-[var(--teal)]/10 text-[var(--teal)] border border-[var(--teal)]/20 px-2 py-0.5 rounded-full uppercase tracking-wider">
                 JJ Act Compliant
               </div>
             </div>
@@ -175,40 +175,40 @@ export const AuthorityDashboard: React.FC = () => {
           
           <div className="flex flex-wrap items-center gap-3">
             <ReportGenerator tickets={tickets} />
-            <button onClick={fetchTickets} className="px-4 py-2 bg-white border-[1.5px] border-[var(--ink)] text-[13px] font-bold rounded-[2px] hover:bg-[var(--line)] transition flex items-center gap-2">
+            <button onClick={fetchTickets} className="px-4 py-2 bg-white/60 backdrop-blur border border-[var(--line)] text-[13px] font-semibold rounded-lg hover:bg-white transition shadow-sm flex items-center gap-2">
               <Activity className="w-4 h-4" /> Sync Data
             </button>
           </div>
         </div>
 
         {/* Navigation Tabs */}
-        <div className="flex border-b-[1.5px] border-[var(--line-strong)] mb-8 gap-1">
+        <div className="flex border-b border-[var(--line-strong)] mb-8 gap-1">
           <button
             onClick={() => setActiveTab('board')}
-            className={`px-5 py-3 font-semibold text-[14px] flex items-center gap-2 border-b-[3px] transition-colors ${activeTab === 'board' ? 'border-[var(--saffron)] text-[var(--ink)]' : 'border-transparent text-[var(--ink-soft)] hover:text-[var(--ink)] hover:bg-[var(--line)]'}`}
+            className={`px-5 py-3 font-semibold text-[14px] flex items-center gap-2 border-b-[2px] transition-colors ${activeTab === 'board' ? 'border-[var(--teal)] text-[var(--ink)]' : 'border-transparent text-[var(--ink-soft)] hover:text-[var(--ink)] hover:bg-[var(--line)]'}`}
           >
             <LayoutDashboard className="w-4 h-4" /> Dispatch Board
           </button>
           <button
             onClick={() => setActiveTab('map')}
-            className={`px-5 py-3 font-semibold text-[14px] flex items-center gap-2 border-b-[3px] transition-colors ${activeTab === 'map' ? 'border-[var(--saffron)] text-[var(--ink)]' : 'border-transparent text-[var(--ink-soft)] hover:text-[var(--ink)] hover:bg-[var(--line)]'}`}
+            className={`px-5 py-3 font-semibold text-[14px] flex items-center gap-2 border-b-[2px] transition-colors ${activeTab === 'map' ? 'border-[var(--teal)] text-[var(--ink)]' : 'border-transparent text-[var(--ink-soft)] hover:text-[var(--ink)] hover:bg-[var(--line)]'}`}
           >
             <Map className="w-4 h-4" /> Live Heatmap
           </button>
           <button
             onClick={() => setActiveTab('list')}
-            className={`px-5 py-3 font-semibold text-[14px] flex items-center gap-2 border-b-[3px] transition-colors ${activeTab === 'list' ? 'border-[var(--saffron)] text-[var(--ink)]' : 'border-transparent text-[var(--ink-soft)] hover:text-[var(--ink)] hover:bg-[var(--line)]'}`}
+            className={`px-5 py-3 font-semibold text-[14px] flex items-center gap-2 border-b-[2px] transition-colors ${activeTab === 'list' ? 'border-[var(--teal)] text-[var(--ink)]' : 'border-transparent text-[var(--ink-soft)] hover:text-[var(--ink)] hover:bg-[var(--line)]'}`}
           >
             <List className="w-4 h-4" /> Evidence Vault
           </button>
         </div>
 
         {/* Main Content Area */}
-        {error && <div className="mb-6 p-4 border border-[rgba(162,59,46,0.4)] bg-[rgba(162,59,46,0.06)] text-[var(--stamp)] rounded-[2px] flex items-center gap-2 text-[13px]"><AlertCircle className="w-5 h-5" />{error}</div>}
+        {error && <div className="mb-6 p-4 border border-[rgba(162,59,46,0.2)] bg-[rgba(162,59,46,0.05)] backdrop-blur text-[var(--stamp)] rounded-xl flex items-center gap-2 text-[13px]"><AlertCircle className="w-5 h-5" />{error}</div>}
         
         {loading ? (
           <div className="flex justify-center items-center py-20 font-mono text-[12px] text-[var(--ink-soft)] uppercase tracking-wider">
-            <div className="w-4 h-4 border-2 border-[var(--ink)] border-t-[var(--saffron)] rounded-full animate-spin mr-3"></div>
+            <div className="w-4 h-4 border-2 border-[var(--ink)] border-t-[var(--teal)] rounded-full animate-spin mr-3"></div>
             Loading secure network data...
           </div>
         ) : (
@@ -225,7 +225,7 @@ export const AuthorityDashboard: React.FC = () => {
 
             {/* TAB 2: Live Heatmap */}
             {activeTab === 'map' && (
-              <div className="bg-[var(--card)] p-5 rounded-[3px] border-[1.5px] border-[var(--ink)] shadow-[4px_4px_0_var(--line-strong)]">
+              <div className="bg-white/40 backdrop-blur-md p-5 rounded-xl border border-[var(--line)] shadow-sm">
                 <h3 className="font-display font-semibold text-[18px] mb-5 flex items-center gap-2 tracking-tight">
                   <MapPin className="w-5 h-5 text-[var(--stamp)]"/> Real-time Interactive Hotspots
                 </h3>
@@ -238,34 +238,34 @@ export const AuthorityDashboard: React.FC = () => {
               <div className="grid gap-6">
                 {tickets.length === 0 ? <p className="font-mono text-[12px] text-[var(--ink-soft)] text-center py-10 uppercase tracking-widest">No active incidents.</p> : null}
                 {tickets.map(ticket => (
-                  <div key={ticket._id} className="bg-[var(--card)] border-[1.5px] border-[var(--ink)] rounded-[3px] p-5 flex flex-col md:flex-row gap-6 shadow-[4px_4px_0_var(--line-strong)] hover:shadow-[6px_6px_0_var(--line-strong)] hover:-translate-y-0.5 transition-all">
+                  <div key={ticket._id} className="bg-white/60 backdrop-blur-sm border border-[var(--line)] rounded-xl p-5 flex flex-col md:flex-row gap-6 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all">
                     
                     {/* Secure Image Vault */}
-                    <div className="w-full md:w-56 h-56 bg-[#0d1420] bg-camera-grid rounded-[2px] overflow-hidden flex flex-col items-center justify-center relative shrink-0 border-[1.5px] border-[var(--ink)]">
+                    <div className="w-full md:w-56 h-56 bg-[#0d1420] bg-camera-grid rounded-xl overflow-hidden flex flex-col items-center justify-center relative shrink-0 border border-[var(--ink)]">
                       {decryptedImages[ticket._id] ? (
                         <>
                           <img src={decryptedImages[ticket._id]} alt="Decrypted Evidence" className="w-full h-full object-cover" />
                           {!khoyaPayaResults[ticket._id] ? (
                             <button 
                               onClick={() => checkKhoyaPaya(ticket._id)}
-                              className="absolute bottom-2 left-2 right-2 px-2 py-2 bg-[var(--ink)]/90 backdrop-blur border border-white/20 text-white text-[11px] font-bold rounded-[2px] hover:bg-[var(--ink)] transition"
+                              className="absolute bottom-2 left-2 right-2 px-2 py-2 bg-[var(--ink)]/80 backdrop-blur text-white text-[11px] font-semibold rounded-lg hover:bg-[var(--ink)] transition"
                             >
                               Check Khoya Paya DB
                             </button>
                           ) : (
-                            <div className={`absolute bottom-0 left-0 right-0 p-2 text-[11px] font-bold text-center backdrop-blur ${khoyaPayaResults[ticket._id].matchFound ? 'bg-[var(--teal)]/90 text-white' : 'bg-black/80 text-white'}`}>
+                            <div className={`absolute bottom-0 left-0 right-0 p-2 text-[11px] font-semibold text-center backdrop-blur ${khoyaPayaResults[ticket._id].matchFound ? 'bg-[var(--teal)]/90 text-white' : 'bg-black/80 text-white'}`}>
                               {khoyaPayaResults[ticket._id].matchFound ? `Match: ${khoyaPayaResults[ticket._id].confidence}% (${khoyaPayaResults[ticket._id].matchedProfileId})` : 'No Match Found'}
                             </div>
                           )}
                         </>
                       ) : (
                         <>
-                          <Lock className="w-8 h-8 text-[var(--saffron)] mb-3" />
-                          <p className="font-mono text-[10px] text-white/70 tracking-widest text-center px-4 mb-4">AES-GCM ENCRYPTED</p>
+                          <Lock className="w-8 h-8 text-[var(--teal)]/60 mb-3" />
+                          <p className="font-mono text-[10px] text-white/50 tracking-widest text-center px-4 mb-4">AES-GCM ENCRYPTED</p>
                           <button
                             onClick={() => handleDecrypt(ticket)}
                             disabled={decryptingIds[ticket._id]}
-                            className="px-4 py-2 bg-[var(--paper)] border-[1.5px] border-[var(--ink)] text-[var(--ink)] text-[11px] font-bold rounded-[2px] hover:bg-[var(--line)] transition flex items-center gap-2 disabled:opacity-50 shadow-[2px_2px_0_var(--saffron)]"
+                            className="px-4 py-2 bg-white/10 backdrop-blur border border-white/20 text-white text-[11px] font-semibold rounded-lg hover:bg-white/20 transition flex items-center gap-2 disabled:opacity-50"
                           >
                             {decryptingIds[ticket._id] ? 'DECRYPTING...' : <><Eye className="w-3 h-3" /> VIEW EVIDENCE</>}
                           </button>

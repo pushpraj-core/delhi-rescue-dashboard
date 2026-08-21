@@ -74,7 +74,7 @@ export const ReportGenerator = ({ tickets }: { tickets: any[] }) => {
     <PDFDownloadLink 
       document={<ReportDocument data={stats} />} 
       fileName={`DCPCR_Weekly_Report_${new Date().toISOString().split('T')[0]}.pdf`}
-      className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition font-semibold"
+      className="flex items-center gap-2 px-4 py-2 bg-[var(--teal)]/90 backdrop-blur text-white text-[13px] font-semibold rounded-lg hover:bg-[var(--teal)] transition shadow-sm"
     >
       <FileText className="w-4 h-4" />
       Generate Weekly PDF

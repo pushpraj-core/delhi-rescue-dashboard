@@ -173,14 +173,14 @@ export const CitizenCapture: React.FC = () => {
           </div>
         ) : null}
 
-        <div className="bg-[var(--card)] border-[1.5px] border-[var(--ink)] rounded-[3px] p-5 shadow-[5px_5px_0_var(--line-strong)]">
-          <div className="flex items-center gap-2 border border-[var(--line-strong)] rounded-[3px] py-2 px-3 mb-4 bg-[var(--paper)]">
+        <div className="bg-white/60 backdrop-blur-md rounded-xl p-5 shadow-sm border border-[var(--line)]">
+          <div className="flex items-center gap-2 border border-[var(--teal)]/20 rounded-xl py-2 px-3 mb-4 bg-[var(--teal)]/5">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-[15px] h-[15px] text-[var(--teal)] shrink-0"><path d="M12 2l8 3.5v6c0 5-3.4 8.9-8 10.5-4.6-1.6-8-5.5-8-10.5v-6L12 2z"/><path d="M9 12l2 2 4-4"/></svg>
-            <span className="font-mono text-[11.5px] text-[var(--ink-soft)] tracking-[0.01em]">ON-DEVICE SECURE CAPTURE ACTIVE</span>
+            <span className="font-mono text-[11.5px] text-[var(--teal)] font-semibold tracking-[0.01em]">ON-DEVICE SECURE CAPTURE ACTIVE</span>
           </div>
 
           {step === 1 && (
-            <div className="aspect-[3/4] rounded-[2px] overflow-hidden relative border-[1.5px] border-[var(--ink)] bg-[#0d1420] bg-camera-grid">
+            <div className="aspect-[3/4] rounded-xl overflow-hidden relative border border-[var(--line)] bg-[#0d1420] bg-camera-grid">
               <video ref={videoRef} autoPlay playsInline muted className="absolute inset-0 w-full h-full object-cover z-0" />
               
               {!modelReady && !camError && (
@@ -204,7 +204,7 @@ export const CitizenCapture: React.FC = () => {
                 <button 
                   onClick={handleCapture}
                   disabled={!modelReady || isCapturing}
-                  className="w-[60px] h-[60px] rounded-full bg-[var(--paper)] border-[3px] border-[var(--ink)] flex items-center justify-center cursor-pointer hover:bg-gray-200 transition-colors disabled:opacity-50"
+                  className="w-[60px] h-[60px] rounded-full bg-white/90 backdrop-blur border border-[var(--line)] shadow-sm flex items-center justify-center cursor-pointer hover:bg-white transition-colors disabled:opacity-50"
                 >
                   {isCapturing 
                     ? <div className="w-5 h-5 border-2 border-[var(--ink)] border-t-transparent rounded-full animate-spin"></div>
@@ -217,9 +217,9 @@ export const CitizenCapture: React.FC = () => {
 
           {step === 2 && captureBlob && (
             <div className="animate-in fade-in duration-300">
-              <div className="aspect-[3/4] rounded-[2px] overflow-hidden relative border-[1.5px] border-[var(--ink)] max-h-[350px]">
+              <div className="aspect-[3/4] rounded-xl overflow-hidden relative border border-[var(--line)] max-h-[350px]">
                 <img src={URL.createObjectURL(captureBlob)} alt="Secure Capture" className="w-full h-full object-cover" />
-                <div className={`absolute top-3 right-3 px-2 py-0.5 rounded-[2px] font-mono text-[10px] font-bold border border-[var(--ink)] shadow-[2px_2px_0_var(--ink)] ${confidenceScore && confidenceScore < 60 ? 'bg-[var(--saffron)] text-white' : 'bg-[var(--teal)] text-white'}`}>
+                <div className={`absolute top-3 right-3 px-2 py-0.5 rounded-md font-mono text-[10px] font-bold shadow-sm ${confidenceScore && confidenceScore < 60 ? 'bg-[var(--stamp)] text-white' : 'bg-[var(--teal)] text-white'}`}>
                   AI SCORE: {confidenceScore}%
                 </div>
               </div>
@@ -229,8 +229,8 @@ export const CitizenCapture: React.FC = () => {
                   <h3 className="font-semibold text-[13px] mb-2">Category *</h3>
                   <div className="flex flex-col gap-2">
                     {['Traffic Intersection Begging', 'Hazardous Labor', 'Unattended Child'].map(cat => (
-                      <label key={cat} className={`flex items-center gap-3 p-3 border-[1.5px] rounded-[2px] cursor-pointer transition-colors ${selectedCategory === cat ? 'border-[var(--ink)] bg-[var(--paper-2)]' : 'border-[var(--line-strong)] bg-white hover:bg-[var(--paper-2)]'}`}>
-                        <div className={`w-4 h-4 rounded-full border-[1.5px] border-[var(--ink)] flex items-center justify-center ${selectedCategory === cat ? 'bg-[var(--ink)]' : 'bg-transparent'}`}>
+                      <label key={cat} className={`flex items-center gap-3 p-3 border rounded-xl cursor-pointer transition-colors ${selectedCategory === cat ? 'border-[var(--teal)] bg-[var(--teal)]/5' : 'border-[var(--line)] bg-white/50 hover:bg-white/80'}`}>
+                        <div className={`w-4 h-4 rounded-full border flex items-center justify-center ${selectedCategory === cat ? 'border-[var(--teal)] bg-[var(--teal)]' : 'border-[var(--line-strong)] bg-transparent'}`}>
                            {selectedCategory === cat && <div className="w-1.5 h-1.5 bg-white rounded-full"></div>}
                         </div>
                         <span className="text-[13px] font-medium">{cat}</span>
@@ -245,8 +245,8 @@ export const CitizenCapture: React.FC = () => {
                     {QUICK_TAGS.map(tag => (
                       <button
                         key={tag} onClick={() => toggleTag(tag)}
-                        className={`px-3 py-1 text-[12px] font-medium rounded-[2px] border-[1.5px] transition-colors ${
-                          selectedTags.includes(tag) ? 'border-[var(--ink)] bg-[var(--ink)] text-white' : 'border-[var(--line-strong)] bg-white text-[var(--ink-soft)] hover:border-[var(--ink)]'
+                        className={`px-3 py-1 text-[12px] font-medium rounded-lg border transition-colors ${
+                          selectedTags.includes(tag) ? 'border-[var(--teal)] bg-[var(--teal)] text-white' : 'border-[var(--line)] bg-white/50 text-[var(--ink-soft)] hover:border-[var(--teal)]'
                         }`}
                       >
                         {tag}
@@ -255,16 +255,16 @@ export const CitizenCapture: React.FC = () => {
                   </div>
                 </div>
 
-                <label className="flex items-center gap-3 p-3 bg-[rgba(162,59,46,0.06)] border border-[rgba(162,59,46,0.4)] rounded-[2px] cursor-pointer mt-2">
+                <label className="flex items-center gap-3 p-3 bg-[rgba(162,59,46,0.06)] border border-[rgba(162,59,46,0.2)] rounded-xl cursor-pointer mt-2 backdrop-blur">
                   <input type="checkbox" className="w-4 h-4 accent-[var(--stamp)]" checked={isEmergency} onChange={(e) => setIsEmergency(e.target.checked)} />
                   <span className="text-[13px] font-bold text-[var(--stamp)]">Flag as Immediate Physical Danger</span>
                 </label>
 
                 <div className="flex gap-3 mt-2">
-                  <button onClick={handleRetake} disabled={isSubmitting} className="flex-1 py-3 text-[13px] font-bold border-[1.5px] border-[var(--ink)] rounded-[2px] hover:bg-[var(--line)] transition-colors">
+                  <button onClick={handleRetake} disabled={isSubmitting} className="flex-1 py-3 text-[13px] font-semibold border border-[var(--line)] bg-white/50 rounded-xl hover:bg-white transition-colors">
                     RETAKE
                   </button>
-                  <button onClick={handleSubmit} disabled={!selectedCategory || isSubmitting} className="flex-[2] py-3 text-[13px] font-bold bg-[var(--ink)] text-[var(--paper)] border-[1.5px] border-[var(--ink)] rounded-[2px] shadow-[3px_3px_0_var(--saffron)] hover:translate-y-[2px] hover:shadow-[1px_1px_0_var(--saffron)] transition-all disabled:opacity-50 disabled:shadow-none flex items-center justify-center gap-2">
+                  <button onClick={handleSubmit} disabled={!selectedCategory || isSubmitting} className="flex-[2] py-3 text-[13px] font-semibold bg-[var(--ink)] text-white rounded-xl shadow-sm hover:shadow-md transition-all disabled:opacity-50 disabled:shadow-none flex items-center justify-center gap-2">
                     {isSubmitting ? <span className="w-4 h-4 border-2 border-[var(--paper)] border-t-transparent rounded-full animate-spin"></span> : 'ENCRYPT & SEND'}
                   </button>
                 </div>
@@ -274,12 +274,12 @@ export const CitizenCapture: React.FC = () => {
 
           {step === 3 && trackingId && (
             <div className="py-8 flex flex-col items-center text-center animate-in fade-in duration-300">
-              <div className="w-16 h-16 rounded-full bg-[var(--teal-light)] text-white flex items-center justify-center mb-5 shadow-[4px_4px_0_var(--ink)] border-[2px] border-[var(--ink)]">
+              <div className="w-16 h-16 rounded-full bg-[var(--teal-light)] text-white flex items-center justify-center mb-5 shadow-sm">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-8 h-8"><path d="M20 6L9 17l-5-5"/></svg>
               </div>
               
               <p className="font-mono text-[12px] font-bold tracking-widest text-[var(--ink-soft)] mb-2 uppercase">Your Anonymous Tracking ID</p>
-              <div className="text-[32px] font-mono font-bold tracking-widest bg-[var(--paper-2)] border-[1.5px] border-[var(--ink)] px-6 py-3 rounded-[2px] shadow-[4px_4px_0_var(--line-strong)] mb-8">
+              <div className="text-[32px] font-mono font-bold tracking-widest bg-white/80 border border-[var(--line)] px-6 py-3 rounded-xl shadow-sm mb-8">
                 {trackingId}
               </div>
               
@@ -290,42 +290,42 @@ export const CitizenCapture: React.FC = () => {
               )}
               
               <div className="flex gap-3 w-full max-w-[300px]">
-                <Link to="/track" className="flex-1 py-3 text-[13px] font-bold border-[1.5px] border-[var(--ink)] rounded-[2px] bg-white hover:bg-[var(--line)] transition-colors text-center">
+                <Link to="/track" className="flex-1 py-3 text-[13px] font-semibold border border-[var(--line)] rounded-xl bg-white/50 hover:bg-white transition-colors text-center">
                   TRACK
                 </Link>
-                <button onClick={handleRetake} className="flex-1 py-3 text-[13px] font-bold bg-[var(--ink)] text-white border-[1.5px] border-[var(--ink)] rounded-[2px] hover:bg-[var(--ink-soft)] transition-colors">
+                <button onClick={handleRetake} className="flex-1 py-3 text-[13px] font-semibold bg-[var(--ink)] text-white rounded-xl shadow-sm hover:shadow-md transition-colors">
                   NEW REPORT
                 </button>
               </div>
             </div>
           )}
 
-          <div className="flex mt-6 pt-4 border-t border-[var(--line-strong)]">
+          <div className="flex mt-6 pt-4 border-t border-[var(--line)]">
             <div className="flex-1 text-center relative">
-              <div className={`w-5 h-5 mx-auto mb-1.5 rounded-full font-mono text-[10.5px] flex items-center justify-center relative z-10 ${step >= 1 ? 'bg-[var(--ink)] text-[var(--paper)]' : 'bg-transparent border border-[var(--line-strong)] text-[var(--ink-soft)]'}`}>1</div>
+              <div className={`w-5 h-5 mx-auto mb-1.5 rounded-full font-mono text-[10.5px] flex items-center justify-center relative z-10 ${step >= 1 ? 'bg-[var(--ink)] text-[var(--paper)]' : 'bg-transparent border border-[var(--line)] text-[var(--ink-soft)]'}`}>1</div>
               <p className="text-[11px] text-[var(--ink-soft)]">Capture</p>
-              <div className="absolute top-[9px] left-[60%] w-[80%] h-px bg-[var(--line-strong)]"></div>
+              <div className="absolute top-[9px] left-[60%] w-[80%] h-px bg-[var(--line)]"></div>
             </div>
             <div className="flex-1 text-center relative">
-              <div className={`w-5 h-5 mx-auto mb-1.5 rounded-full font-mono text-[10.5px] flex items-center justify-center relative z-10 ${step >= 2 ? 'bg-[var(--ink)] text-[var(--paper)]' : 'bg-[var(--card)] border border-[var(--line-strong)] text-[var(--ink-soft)]'}`}>2</div>
+              <div className={`w-5 h-5 mx-auto mb-1.5 rounded-full font-mono text-[10.5px] flex items-center justify-center relative z-10 ${step >= 2 ? 'bg-[var(--ink)] text-[var(--paper)]' : 'bg-transparent border border-[var(--line)] text-[var(--ink-soft)]'}`}>2</div>
               <p className="text-[11px] text-[var(--ink-soft)]">Details</p>
-              <div className="absolute top-[9px] left-[60%] w-[80%] h-px bg-[var(--line-strong)]"></div>
+              <div className="absolute top-[9px] left-[60%] w-[80%] h-px bg-[var(--line)]"></div>
             </div>
             <div className="flex-1 text-center relative">
-              <div className={`w-5 h-5 mx-auto mb-1.5 rounded-full font-mono text-[10.5px] flex items-center justify-center relative z-10 ${step >= 3 ? 'bg-[var(--ink)] text-[var(--paper)]' : 'bg-[var(--card)] border border-[var(--line-strong)] text-[var(--ink-soft)]'}`}>3</div>
+              <div className={`w-5 h-5 mx-auto mb-1.5 rounded-full font-mono text-[10.5px] flex items-center justify-center relative z-10 ${step >= 3 ? 'bg-[var(--ink)] text-[var(--paper)]' : 'bg-transparent border border-[var(--line)] text-[var(--ink-soft)]'}`}>3</div>
               <p className="text-[11px] text-[var(--ink-soft)]">Send</p>
             </div>
           </div>
         </div>
 
-        <div className="flex gap-3 items-start mt-6 p-4 bg-[var(--paper-2)] border-l-2 border-[var(--teal)] rounded-r-[2px]">
+        <div className="flex gap-3 items-start mt-6 p-4 bg-white/40 backdrop-blur border border-[var(--line)] border-l-[3px] border-l-[var(--teal)] rounded-xl">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4 text-[var(--teal)] shrink-0 mt-0.5"><path d="M12 2l8 3.5v6c0 5-3.4 8.9-8 10.5-4.6-1.6-8-5.5-8-10.5v-6L12 2z"/></svg>
           <p className="text-[13px] text-[var(--ink-soft)] leading-relaxed">
             <b className="text-[var(--ink)]">Your identity stays private.</b> Reports are encrypted and reviewed only by verified child protection officers in your district. You won't be asked to give your name.
           </p>
         </div>
 
-        <div className="mt-4 p-3 border border-[rgba(162,59,46,0.4)] bg-[rgba(162,59,46,0.06)] rounded-[2px] text-[12.5px] text-[var(--stamp)] leading-relaxed">
+        <div className="mt-4 p-4 bg-[rgba(162,59,46,0.05)] border border-[rgba(162,59,46,0.2)] rounded-xl text-[12.5px] text-[var(--stamp)] leading-relaxed backdrop-blur">
           <b>In immediate danger?</b> Contact Childline at 1098 or the police at 100 before filing a report.
         </div>
       </main>
