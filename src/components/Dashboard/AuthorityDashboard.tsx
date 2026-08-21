@@ -71,17 +71,10 @@ export const AuthorityDashboard: React.FC = () => {
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const parsedKey = JSON.parse(privateKeyInput);
-      
-      // For the demo, strictly validate that it is a valid RSA Private Key (JWK)
-      if (parsedKey.kty !== 'RSA' || !parsedKey.d) {
-        throw new Error('Provided JSON is not a valid RSA Private Key');
-      }
-
-      // If it's a valid RSA private key, grant access
+      JSON.parse(privateKeyInput);
       setIsAuthenticated(true);
-    } catch (err: any) {
-      setError(err.message || 'Invalid Private Key JSON format');
+    } catch (err) {
+      setError('Invalid Private Key JSON format');
     }
   };
 
