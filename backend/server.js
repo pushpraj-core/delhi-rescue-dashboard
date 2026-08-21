@@ -12,6 +12,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/tickets', ticketRoutes);
 
 const PORT = process.env.PORT || 3000;
+// Connects to MongoDB Atlas Cloud Database in production
 const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/delhi_rescue';
 
 // Connect to MongoDB and start server
