@@ -6,11 +6,20 @@ export const TrackReport: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [ticketData, setTicketData] = useState<any | null>(null);
+  const [history, setHistory] = useState<any[]>([]);
 
-  const handleSearch = async (e: React.FormEvent) => {
-    e.preventDefault();
+  React.useEffect(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem('raksha_recent_reports') || '[]');
+      setHistory(saved);
+    } catch(e) {}
+  }, []);
+
+  const handleSearch = async (e: React.FormEvent, overrideId?: string) => {
+    e?.preventDefault();
+    const targetId = overrideId || trackingId;
     
-    if (!trackingId || trackingId.length < 5) {
+    if (!targetId || targetId.length < 5) {
       setError('Please enter a valid Tracking ID.');
       return;
     }
@@ -18,16 +27,17 @@ export const TrackReport: React.FC = () => {
     setIsLoading(true);
     setError(null);
     setTicketData(null);
+    setTrackingId(targetId);
 
     // Normalize for local offline tracking prefix
-    if (trackingId.toUpperCase().startsWith('OFFLINE-')) {
+    if (targetId.toUpperCase().startsWith('OFFLINE-')) {
       setError('This report was saved offline. Please connect to the internet and open the app to sync it before tracking.');
       setIsLoading(false);
       return;
     }
 
     try {
-      const response = await fetch(`/api/tickets/track/${trackingId.trim().toUpperCase()}`);
+      const response = await fetch(`/api/tickets/track/${targetId.trim().toUpperCase()}`);
       if (!response.ok) {
         const errData = await response.json();
         throw new Error(errData.error || 'Report not found.');
@@ -58,6 +68,8 @@ export const TrackReport: React.FC = () => {
 
   return (
     <div className="max-w-md mx-auto mt-12 p-6 bg-white min-h-[400px] flex flex-col rounded-2xl shadow-xl border border-gray-100">
+      
+      {/* Search Header */}
       <div className="flex flex-col items-center mb-8 text-center">
         <div className="w-12 h-12 bg-teal-50 rounded-full flex items-center justify-center mb-4">
           <Search className="w-6 h-6 text-teal-600" />
@@ -83,6 +95,27 @@ export const TrackReport: React.FC = () => {
           {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Search'}
         </button>
       </form>
+
+      {history.length > 0 && !ticketData && (
+        <div className="mb-6">
+          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Your Recent Reports</p>
+          <div className="flex flex-col gap-2">
+            {history.map((item, idx) => (
+              <button
+                key={idx}
+                onClick={(e) => handleSearch(e, item.id)}
+                className="flex justify-between items-center p-3 rounded-lg border border-gray-200 hover:border-teal-300 hover:bg-teal-50 transition text-left"
+              >
+                <div>
+                  <div className="font-mono font-bold text-gray-800">{item.id}</div>
+                  <div className="text-xs text-gray-500 mt-1">{new Date(item.date).toLocaleDateString()} • {item.category}</div>
+                </div>
+                {item.isOffline && <span className="text-xs font-semibold text-orange-600 bg-orange-100 px-2 py-0.5 rounded">Offline</span>}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {error && (
         <div className="p-4 bg-red-50 border border-red-100 text-red-700 rounded-lg flex items-start gap-3">

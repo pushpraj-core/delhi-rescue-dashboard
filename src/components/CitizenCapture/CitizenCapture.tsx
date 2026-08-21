@@ -147,8 +147,20 @@ export const CitizenCapture: React.FC = () => {
         }
 
         const data = await response.json();
-        setTrackingId(data.ticket.trackingId);
+        const id = data.ticket.trackingId;
+        setTrackingId(id);
         setIsOfflineSave(false);
+        
+        // Save to local history for easy tracking
+        const history = JSON.parse(localStorage.getItem('raksha_recent_reports') || '[]');
+        history.unshift({
+          id,
+          date: new Date().toISOString(),
+          category: selectedCategory,
+          isOffline: false
+        });
+        localStorage.setItem('raksha_recent_reports', JSON.stringify(history.slice(0, 10))); // keep last 10
+
       } catch (networkError) {
         // Offline Fallback
         const { saveOfflineReport } = await import('../../utils/db');
@@ -156,8 +168,19 @@ export const CitizenCapture: React.FC = () => {
         
         // When offline, we don't have a real tracking ID yet from the backend, 
         // but we can generate a temporary one or instruct the user to sync later.
-        setTrackingId(`OFFLINE-${offlineId.split('_')[2].toUpperCase()}`);
+        const id = `OFFLINE-${offlineId.split('_')[2].toUpperCase()}`;
+        setTrackingId(id);
         setIsOfflineSave(true);
+        
+        // Save offline report to history too
+        const history = JSON.parse(localStorage.getItem('raksha_recent_reports') || '[]');
+        history.unshift({
+          id,
+          date: new Date().toISOString(),
+          category: selectedCategory,
+          isOffline: true
+        });
+        localStorage.setItem('raksha_recent_reports', JSON.stringify(history.slice(0, 10)));
       }
       
       // Clear sensitive memory strictly
