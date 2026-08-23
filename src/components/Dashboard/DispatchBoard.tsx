@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { MapPin, AlertCircle, Clock, ChevronRight, Users } from 'lucide-react';
+import { MapPin, AlertCircle, Clock, ChevronRight, Users, Search, Filter } from 'lucide-react';
 
 interface Ticket {
   _id: string;
@@ -8,6 +8,8 @@ interface Ticket {
   status: string;
   confidence_score: number;
   assigned_team?: string | null;
+  priority?: string;
+  isEmergency?: boolean;
 }
 
 const STATUSES = ['New Reports', 'Under Review', 'Field Team Dispatched', 'Case Closed (CWC)'];
@@ -89,12 +91,26 @@ const TicketCard = ({ ticket, onClick, onStatusChange, onTeamAssign }: { ticket:
 export const DispatchBoard = ({ rawTickets, onTicketUpdate, onTicketClick, onTeamAssign }: { rawTickets: Ticket[], onTicketUpdate: (id: string, status: string) => void, onTicketClick: (ticket: Ticket) => void, onTeamAssign: (id: string, team: string) => void }) => {
   const [activeStatus, setActiveStatus] = useState<string>('New Reports');
   const [tickets, setTickets] = useState<Ticket[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterDistrict, setFilterDistrict] = useState('');
+  const [filterCategory, setFilterCategory] = useState('');
+  const [filterEmergencyOnly, setFilterEmergencyOnly] = useState(false);
 
   useEffect(() => {
     setTickets(rawTickets.map(t => ({ ...t, status: normalizeStatus(t.status) })));
   }, [rawTickets]);
 
-  const displayedTickets = tickets.filter(t => t.status === activeStatus);
+  const districts = [...new Set(tickets.map(t => t.district_id))].sort();
+  const categories = [...new Set(tickets.map(t => t.user_category))].sort();
+
+  const displayedTickets = tickets.filter(t => {
+    if (t.status !== activeStatus) return false;
+    if (searchQuery && !t._id.toLowerCase().includes(searchQuery.toLowerCase()) && !t.user_category.toLowerCase().includes(searchQuery.toLowerCase())) return false;
+    if (filterDistrict && t.district_id !== filterDistrict) return false;
+    if (filterCategory && t.user_category !== filterCategory) return false;
+    if (filterEmergencyOnly && !t.isEmergency) return false;
+    return true;
+  });
 
   return (
     <div className="flex flex-col gap-6">
@@ -122,6 +138,32 @@ export const DispatchBoard = ({ rawTickets, onTicketUpdate, onTicketClick, onTea
             </button>
           );
         })}
+      </div>
+
+      {/* Filter Bar */}
+      <div className="flex flex-wrap gap-2 items-center p-2 bg-white/30 backdrop-blur-md rounded-xl border border-[var(--line)]">
+        <div className="flex items-center gap-1.5 flex-1 min-w-[180px] bg-white/60 border border-[var(--line)] rounded-lg px-2.5 py-1.5">
+          <Search className="w-3.5 h-3.5 text-[var(--ink-soft)]" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search ID or category..."
+            className="bg-transparent outline-none text-[12px] w-full text-[var(--ink)] placeholder:text-[var(--ink-soft)]/50"
+          />
+        </div>
+        <select value={filterDistrict} onChange={(e) => setFilterDistrict(e.target.value)} className="text-[11px] font-semibold py-1.5 px-2 rounded-lg border border-[var(--line)] bg-white/60 text-[var(--ink)] outline-none cursor-pointer">
+          <option value="">All Districts</option>
+          {districts.map(d => <option key={d} value={d}>{d}</option>)}
+        </select>
+        <select value={filterCategory} onChange={(e) => setFilterCategory(e.target.value)} className="text-[11px] font-semibold py-1.5 px-2 rounded-lg border border-[var(--line)] bg-white/60 text-[var(--ink)] outline-none cursor-pointer">
+          <option value="">All Categories</option>
+          {categories.map(c => <option key={c} value={c}>{c}</option>)}
+        </select>
+        <label className="flex items-center gap-1.5 text-[11px] font-semibold text-[var(--stamp)] cursor-pointer bg-white/60 border border-[var(--line)] rounded-lg px-2.5 py-1.5">
+          <input type="checkbox" checked={filterEmergencyOnly} onChange={(e) => setFilterEmergencyOnly(e.target.checked)} className="w-3 h-3 accent-[var(--stamp)]" />
+          Emergency Only
+        </label>
       </div>
 
       {/* Ticket Grid */}
