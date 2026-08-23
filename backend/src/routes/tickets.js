@@ -95,13 +95,15 @@ router.get('/track/:trackingId', async (req, res) => {
 // PATCH /api/tickets/:id/status - Kanban Board Status Update
 router.patch('/:id/status', logAction('STATUS_UPDATE'), async (req, res) => {
   try {
-    const { status, assigned_team } = req.body;
-    const updateFields = { status };
+    const { status, assigned_team, priority } = req.body;
+    const updateFields = {};
+    if (status) updateFields.status = status;
+    if (priority) updateFields.priority = priority;
 
     // Only persist team assignment when dispatching; clear it otherwise
     if (status === 'Field Team Dispatched' && assigned_team) {
       updateFields.assigned_team = assigned_team;
-    } else if (status !== 'Field Team Dispatched') {
+    } else if (status && status !== 'Field Team Dispatched') {
       updateFields.assigned_team = null;
     }
 

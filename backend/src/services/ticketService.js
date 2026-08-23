@@ -35,6 +35,10 @@ const ingestTicket = async (ticketData) => {
 
   // 3. Triage Logic Setup
   let initialStatus = 'New Reports';
+  let priority = 'Medium';
+  if (isEmergency) priority = 'Critical';
+  else if (confidence_score >= 80) priority = 'High';
+  else if (confidence_score < 50) priority = 'Low';
 
   // 4. Find duplicate within 50 meters that is NOT closed
   const existingTicket = await Ticket.findOne({
@@ -74,7 +78,8 @@ const ingestTicket = async (ticketData) => {
     user_category,
     tags: tags || [],
     isEmergency: isEmergency || false,
-    status: initialStatus
+    status: initialStatus,
+    priority
   });
 
   await newTicket.save();

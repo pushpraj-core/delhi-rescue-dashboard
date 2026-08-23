@@ -22,6 +22,7 @@ interface Ticket {
   isEmergency?: boolean;
   assigned_team?: string | null;
   notes?: { text: string; author: string; createdAt: string }[];
+  priority?: string;
 }
 
 export const AuthorityDashboard: React.FC = () => {
@@ -154,15 +155,28 @@ export const AuthorityDashboard: React.FC = () => {
 
   const handleTeamAssign = async (id: string, team: string) => {
     try {
-      // Optimistic update
       setTickets(prev => prev.map(t => t._id === id ? { ...t, assigned_team: team || null } : t));
-
       const res = await fetch(`/api/tickets/${id}/status`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: 'Field Team Dispatched', assigned_team: team || null })
       });
       if (!res.ok) throw new Error('Failed to assign team');
+    } catch (err) {
+      console.error(err);
+      fetchTickets();
+    }
+  };
+
+  const handlePriorityUpdate = async (id: string, priority: string) => {
+    try {
+      setTickets(prev => prev.map(t => t._id === id ? { ...t, priority } : t));
+      const res = await fetch(`/api/tickets/${id}/status`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ priority })
+      });
+      if (!res.ok) throw new Error('Failed to update priority');
     } catch (err) {
       console.error(err);
       fetchTickets();
@@ -360,6 +374,21 @@ export const AuthorityDashboard: React.FC = () => {
                             <option value="Case Closed (CWC)">Case Closed (CWC)</option>
                           </select>
                           {ticket.isEmergency && <span className="px-2 py-1 bg-[var(--stamp)] text-white text-[10px] font-bold uppercase tracking-wider rounded-[2px] flex items-center gap-1 border-[1.5px] border-[var(--ink)]"><AlertCircle className="w-3 h-3"/> Emergency</span>}
+                          <select
+                            value={ticket.priority || 'Medium'}
+                            onChange={(e) => handlePriorityUpdate(ticket._id, e.target.value)}
+                            className={`px-2 py-1 text-[10px] font-bold uppercase tracking-wider rounded-[2px] border-[1.5px] outline-none cursor-pointer appearance-none ${
+                              ticket.priority === 'Critical' ? 'bg-[rgba(162,59,46,0.15)] text-[var(--stamp)] border-[rgba(162,59,46,0.5)]'
+                              : ticket.priority === 'High' ? 'bg-[rgba(201,116,56,0.15)] text-[var(--saffron)] border-[var(--saffron)]'
+                              : ticket.priority === 'Low' ? 'bg-[var(--paper-2)] text-[var(--ink-soft)] border-[var(--line-strong)]'
+                              : 'bg-[var(--teal)]/10 text-[var(--teal)] border-[var(--teal)]/30'
+                            }`}
+                          >
+                            <option value="Critical">Critical</option>
+                            <option value="High">High</option>
+                            <option value="Medium">Medium</option>
+                            <option value="Low">Low</option>
+                          </select>
                         </div>
                         <span className="text-[12px] text-[var(--ink-soft)] font-mono font-semibold bg-[var(--paper-2)] border border-[var(--line-strong)] px-2 py-0.5 rounded-[2px]">ID: {ticket._id.slice(-6)}</span>
                       </div>
