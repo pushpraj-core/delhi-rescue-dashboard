@@ -95,8 +95,17 @@ router.get('/track/:trackingId', async (req, res) => {
 // PATCH /api/tickets/:id/status - Kanban Board Status Update
 router.patch('/:id/status', logAction('STATUS_UPDATE'), async (req, res) => {
   try {
-    const { status } = req.body;
-    const ticket = await Ticket.findByIdAndUpdate(req.params.id, { status }, { new: true });
+    const { status, assigned_team } = req.body;
+    const updateFields = { status };
+
+    // Only persist team assignment when dispatching; clear it otherwise
+    if (status === 'Field Team Dispatched' && assigned_team) {
+      updateFields.assigned_team = assigned_team;
+    } else if (status !== 'Field Team Dispatched') {
+      updateFields.assigned_team = null;
+    }
+
+    const ticket = await Ticket.findByIdAndUpdate(req.params.id, updateFields, { new: true });
     if (!ticket) return res.status(404).json({ error: 'Ticket not found' });
     res.json({ ticket });
   } catch (error) {

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Shield, Key, Eye, Lock, MapPin, AlertCircle, Map, LayoutDashboard, List, Activity, UserCheck } from 'lucide-react';
+import { Shield, Key, Eye, Lock, MapPin, AlertCircle, Map, LayoutDashboard, List, Activity, UserCheck, Users } from 'lucide-react';
 import { GoogleLogin } from '@react-oauth/google';
 import type { EncryptedPayload } from '../../utils/crypto';
 import { decryptImagePayload } from '../../utils/crypto';
@@ -20,6 +20,7 @@ interface Ticket {
   location: { coordinates: [number, number] };
   encryptedPayload: EncryptedPayload;
   isEmergency?: boolean;
+  assigned_team?: string | null;
 }
 
 export const AuthorityDashboard: React.FC = () => {
@@ -149,6 +150,23 @@ export const AuthorityDashboard: React.FC = () => {
     }
   };
 
+  const handleTeamAssign = async (id: string, team: string) => {
+    try {
+      // Optimistic update
+      setTickets(prev => prev.map(t => t._id === id ? { ...t, assigned_team: team || null } : t));
+
+      const res = await fetch(`/api/tickets/${id}/status`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'Field Team Dispatched', assigned_team: team || null })
+      });
+      if (!res.ok) throw new Error('Failed to assign team');
+    } catch (err) {
+      console.error(err);
+      fetchTickets();
+    }
+  };
+
   if (!isGoogleAuthenticated) {
     return (
       <div className="bg-dotted-paper min-h-[calc(100vh-64px)] flex flex-col justify-center items-center font-body text-[var(--ink)] pb-10">
@@ -267,6 +285,7 @@ export const AuthorityDashboard: React.FC = () => {
                 rawTickets={tickets} 
                 onTicketUpdate={handleStatusUpdate}
                 onTicketClick={() => setActiveTab('list')}
+                onTeamAssign={handleTeamAssign}
               />
             )}
 
@@ -344,6 +363,13 @@ export const AuthorityDashboard: React.FC = () => {
                       </div>
                       
                       <h3 className="text-[18px] font-display font-bold text-[var(--ink)] mt-1">{ticket.user_category}</h3>
+
+                      {ticket.assigned_team && (
+                        <div className="flex items-center gap-1.5 mt-2 px-2.5 py-1.5 rounded-[3px] bg-[var(--teal)]/10 border-[1.5px] border-[var(--teal)]/30 w-fit">
+                          <Users className="w-3.5 h-3.5 text-[var(--teal)]" />
+                          <span className="text-[12px] font-semibold text-[var(--teal)]">{ticket.assigned_team}</span>
+                        </div>
+                      )}
                       
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-auto bg-[var(--paper)] p-4 rounded-[3px] border-[1.5px] border-[var(--line-strong)]">
                         <div>

@@ -55,6 +55,10 @@ const ticketSchema = new mongoose.Schema({
     enum: ['New Reports', 'Under Review', 'Field Team Dispatched', 'Case Closed (CWC)'],
     default: 'New Reports'
   },
+  assigned_team: {
+    type: String,
+    default: null
+  },
   createdAt: {
     type: Date,
     default: Date.now,

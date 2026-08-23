@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { MapPin, AlertCircle, Clock, ChevronRight } from 'lucide-react';
+import { MapPin, AlertCircle, Clock, ChevronRight, Users } from 'lucide-react';
 
 interface Ticket {
   _id: string;
@@ -7,16 +7,29 @@ interface Ticket {
   user_category: string;
   status: string;
   confidence_score: number;
+  assigned_team?: string | null;
 }
 
 const STATUSES = ['New Reports', 'Under Review', 'Field Team Dispatched', 'Case Closed (CWC)'];
+
+const TEAMS = [
+  'DCPU Rapid Response Alpha',
+  'DCPU Rapid Response Bravo',
+  'CWC Mobile Unit 1',
+  'CWC Mobile Unit 2',
+  'Local Police PCR Van',
+  'NGO Partner – SOS Children',
+  'NGO Partner – Bachpan Bachao',
+];
 
 const normalizeStatus = (status: string) => {
   if (STATUSES.includes(status)) return status;
   return 'New Reports';
 };
 
-const TicketCard = ({ ticket, onClick, onStatusChange }: { ticket: Ticket, onClick: () => void, onStatusChange: (id: string, status: string) => void }) => {
+const TicketCard = ({ ticket, onClick, onStatusChange, onTeamAssign }: { ticket: Ticket, onClick: () => void, onStatusChange: (id: string, status: string) => void, onTeamAssign: (id: string, team: string) => void }) => {
+  const isDispatched = ticket.status === 'Field Team Dispatched';
+
   return (
     <div className="bg-white/90 backdrop-blur p-4 rounded-xl border border-[var(--line)] shadow-sm hover:shadow-md hover:-translate-y-[1px] transition-all flex flex-col justify-between">
       <div>
@@ -28,6 +41,31 @@ const TicketCard = ({ ticket, onClick, onStatusChange }: { ticket: Ticket, onCli
         </div>
         <h4 className="font-display font-semibold text-[var(--ink)] text-[15px] mb-3 leading-tight cursor-pointer" onClick={onClick}>{ticket.user_category}</h4>
       </div>
+
+      {/* Team Badge – always visible if a team is assigned */}
+      {ticket.assigned_team && (
+        <div className="flex items-center gap-1.5 mb-3 px-2 py-1.5 rounded-lg bg-[var(--teal)]/10 border border-[var(--teal)]/20">
+          <Users className="w-3.5 h-3.5 text-[var(--teal)]" />
+          <span className="text-[11px] font-semibold text-[var(--teal)] truncate">{ticket.assigned_team}</span>
+        </div>
+      )}
+
+      {/* Team Assignment Dropdown – only shown when dispatched */}
+      {isDispatched && (
+        <div className="mb-3">
+          <label className="text-[10px] font-mono font-bold text-[var(--ink-soft)] uppercase tracking-wider mb-1 block">Assign Team</label>
+          <select
+            value={ticket.assigned_team || ''}
+            onChange={(e) => onTeamAssign(ticket._id, e.target.value)}
+            className="w-full text-[12px] font-semibold p-2 rounded-lg border border-[var(--teal)]/30 bg-[var(--teal)]/5 text-[var(--ink)] outline-none cursor-pointer focus:border-[var(--teal)] hover:bg-[var(--teal)]/10 transition-colors"
+          >
+            <option value="">— Select Team —</option>
+            {TEAMS.map(team => (
+              <option key={team} value={team}>{team}</option>
+            ))}
+          </select>
+        </div>
+      )}
       
       <div className="flex justify-between items-center mt-3 pt-3 border-t border-[var(--line)]">
         <div className="flex items-center gap-1 text-[11px] font-semibold text-[var(--ink-soft)] tracking-wider cursor-pointer" onClick={onClick}>
@@ -48,7 +86,7 @@ const TicketCard = ({ ticket, onClick, onStatusChange }: { ticket: Ticket, onCli
   );
 };
 
-export const DispatchBoard = ({ rawTickets, onTicketUpdate, onTicketClick }: { rawTickets: Ticket[], onTicketUpdate: (id: string, status: string) => void, onTicketClick: (ticket: Ticket) => void }) => {
+export const DispatchBoard = ({ rawTickets, onTicketUpdate, onTicketClick, onTeamAssign }: { rawTickets: Ticket[], onTicketUpdate: (id: string, status: string) => void, onTicketClick: (ticket: Ticket) => void, onTeamAssign: (id: string, team: string) => void }) => {
   const [activeStatus, setActiveStatus] = useState<string>('New Reports');
   const [tickets, setTickets] = useState<Ticket[]>([]);
 
@@ -103,7 +141,8 @@ export const DispatchBoard = ({ rawTickets, onTicketUpdate, onTicketClick }: { r
                 key={ticket._id} 
                 ticket={ticket} 
                 onClick={() => onTicketClick(ticket)} 
-                onStatusChange={onTicketUpdate} 
+                onStatusChange={onTicketUpdate}
+                onTeamAssign={onTeamAssign}
               />
             ))}
           </div>
