@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Shield, Key, Eye, Lock, MapPin, AlertCircle, Map, LayoutDashboard, List, Activity, UserCheck, Users } from 'lucide-react';
+import { Shield, Key, Eye, Lock, MapPin, AlertCircle, Map, LayoutDashboard, List, Activity, UserCheck, Users, MessageSquare, Send } from 'lucide-react';
 import { GoogleLogin } from '@react-oauth/google';
 import type { EncryptedPayload } from '../../utils/crypto';
 import { decryptImagePayload } from '../../utils/crypto';
@@ -21,6 +21,7 @@ interface Ticket {
   encryptedPayload: EncryptedPayload;
   isEmergency?: boolean;
   assigned_team?: string | null;
+  notes?: { text: string; author: string; createdAt: string }[];
 }
 
 export const AuthorityDashboard: React.FC = () => {
@@ -36,6 +37,7 @@ export const AuthorityDashboard: React.FC = () => {
   const [decryptedImages, setDecryptedImages] = useState<Record<string, string>>({});
   const [decryptingIds, setDecryptingIds] = useState<Record<string, boolean>>({});
   const [khoyaPayaResults, setKhoyaPayaResults] = useState<Record<string, any>>({});
+  const [noteInputs, setNoteInputs] = useState<Record<string, string>>({});
   
   const [activeTab, setActiveTab] = useState<'map' | 'board' | 'list'>('board');
 
@@ -385,6 +387,69 @@ export const AuthorityDashboard: React.FC = () => {
                           <p className="text-[13px] font-mono font-medium text-[var(--ink)]">
                             {ticket.location.coordinates[1].toFixed(5)}, {ticket.location.coordinates[0].toFixed(5)}
                           </p>
+                        </div>
+                      </div>
+
+                      {/* Internal Notes */}
+                      <div className="mt-4 border-[1.5px] border-[var(--line-strong)] rounded-[3px] overflow-hidden">
+                        <div className="bg-[var(--paper-2)] px-3 py-2 flex items-center gap-2 border-b border-[var(--line-strong)]">
+                          <MessageSquare className="w-3.5 h-3.5 text-[var(--ink-soft)]" />
+                          <span className="font-mono text-[10px] font-bold text-[var(--ink-soft)] uppercase tracking-widest">Case Notes ({ticket.notes?.length || 0})</span>
+                        </div>
+                        <div className="max-h-[150px] overflow-y-auto">
+                          {(ticket.notes && ticket.notes.length > 0) ? ticket.notes.map((note, idx) => (
+                            <div key={idx} className="px-3 py-2 border-b border-[var(--line)] last:border-b-0 bg-white/50">
+                              <p className="text-[12px] text-[var(--ink)] leading-relaxed">{note.text}</p>
+                              <p className="text-[10px] text-[var(--ink-soft)] mt-1 font-mono">{note.author} · {new Date(note.createdAt).toLocaleString()}</p>
+                            </div>
+                          )) : (
+                            <p className="px-3 py-3 text-[11px] text-[var(--ink-soft)] italic">No notes yet.</p>
+                          )}
+                        </div>
+                        <div className="flex border-t border-[var(--line-strong)]">
+                          <input
+                            type="text"
+                            value={noteInputs[ticket._id] || ''}
+                            onChange={(e) => setNoteInputs(prev => ({ ...prev, [ticket._id]: e.target.value }))}
+                            placeholder="Add a case note..."
+                            className="flex-1 px-3 py-2 text-[12px] bg-white/80 outline-none placeholder:text-[var(--ink-soft)]/50"
+                            onKeyDown={async (e) => {
+                              if (e.key === 'Enter' && noteInputs[ticket._id]?.trim()) {
+                                try {
+                                  const res = await fetch(`/api/tickets/${ticket._id}/notes`, {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ text: noteInputs[ticket._id] })
+                                  });
+                                  if (res.ok) {
+                                    const data = await res.json();
+                                    setTickets(prev => prev.map(t => t._id === ticket._id ? { ...t, notes: data.notes } : t));
+                                    setNoteInputs(prev => ({ ...prev, [ticket._id]: '' }));
+                                  }
+                                } catch (err) { console.error(err); }
+                              }
+                            }}
+                          />
+                          <button
+                            onClick={async () => {
+                              if (!noteInputs[ticket._id]?.trim()) return;
+                              try {
+                                const res = await fetch(`/api/tickets/${ticket._id}/notes`, {
+                                  method: 'POST',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({ text: noteInputs[ticket._id] })
+                                });
+                                if (res.ok) {
+                                  const data = await res.json();
+                                  setTickets(prev => prev.map(t => t._id === ticket._id ? { ...t, notes: data.notes } : t));
+                                  setNoteInputs(prev => ({ ...prev, [ticket._id]: '' }));
+                                }
+                              } catch (err) { console.error(err); }
+                            }}
+                            className="px-3 py-2 bg-[var(--ink)] text-white hover:bg-[var(--ink-soft)] transition-colors"
+                          >
+                            <Send className="w-3.5 h-3.5" />
+                          </button>
                         </div>
                       </div>
                     </div>

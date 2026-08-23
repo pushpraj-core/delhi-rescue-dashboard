@@ -114,6 +114,25 @@ router.patch('/:id/status', logAction('STATUS_UPDATE'), async (req, res) => {
   }
 });
 
+// POST /api/tickets/:id/notes - Add Internal Case Note
+router.post('/:id/notes', logAction('NOTE_ADDED'), async (req, res) => {
+  try {
+    const { text, author } = req.body;
+    if (!text || !text.trim()) return res.status(400).json({ error: 'Note text is required' });
+
+    const ticket = await Ticket.findByIdAndUpdate(
+      req.params.id,
+      { $push: { notes: { text: text.trim(), author: author || 'Nodal_Officer_DL_01' } } },
+      { new: true }
+    );
+    if (!ticket) return res.status(404).json({ error: 'Ticket not found' });
+    res.json({ notes: ticket.notes });
+  } catch (error) {
+    console.error('[Add Note Error]:', error.message);
+    res.status(500).json({ error: 'Failed to add note' });
+  }
+});
+
 // POST /api/tickets/:id/audit-decrypt - Log Evidence Decryption
 router.post('/:id/audit-decrypt', logAction('EVIDENCE_DECRYPTED'), async (req, res) => {
   res.json({ success: true, message: 'Decryption logged securely.' });

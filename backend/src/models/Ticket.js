@@ -59,6 +59,11 @@ const ticketSchema = new mongoose.Schema({
     type: String,
     default: null
   },
+  notes: [{
+    text: { type: String, required: true },
+    author: { type: String, default: 'Nodal_Officer_DL_01' },
+    createdAt: { type: Date, default: Date.now }
+  }],
   createdAt: {
     type: Date,
     default: Date.now,
