@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Search, Loader2, AlertCircle, ShieldCheck, MapPin, Calendar, Clock, Info } from 'lucide-react';
+import { Search, Loader2, AlertCircle, ShieldCheck, MapPin, Calendar, Clock, Info, Users } from 'lucide-react';
 
 export const TrackReport: React.FC = () => {
   const [trackingId, setTrackingId] = useState('');
@@ -154,6 +154,16 @@ export const TrackReport: React.FC = () => {
               <span className="text-xs text-gray-500 flex items-center gap-1 mb-1"><MapPin className="w-3 h-3" /> Assignee</span>
               <span className="text-sm font-medium text-gray-800">DCPU {ticketData.district_id !== 'UNASSIGNED' ? ticketData.district_id : 'Processing Unit'}</span>
             </div>
+
+            {ticketData.assigned_team && (
+              <div className="flex items-center gap-2 p-2.5 bg-teal-50 border border-teal-200 rounded-lg">
+                <Users className="w-4 h-4 text-teal-600" />
+                <div>
+                  <span className="text-xs text-teal-700 font-semibold block">Team Dispatched</span>
+                  <span className="text-sm font-medium text-teal-800">{ticketData.assigned_team}</span>
+                </div>
+              </div>
+            )}
 
             <div className="mt-2 p-3 bg-blue-50 border border-blue-100 rounded-lg flex gap-2">
               <Info className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />

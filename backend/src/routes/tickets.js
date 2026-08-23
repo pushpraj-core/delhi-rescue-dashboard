@@ -79,7 +79,7 @@ router.get('/track/:trackingId', async (req, res) => {
     // We do NOT use getTickets() from service because that returns all sensitive data
     // We query directly and only return safe fields
     const Ticket = require('../models/Ticket');
-    const ticket = await Ticket.findOne({ trackingId }).select('trackingId status createdAt district_id isEmergency -_id');
+    const ticket = await Ticket.findOne({ trackingId }).select('trackingId status createdAt district_id isEmergency assigned_team -_id');
     
     if (!ticket) {
       return res.status(404).json({ error: 'Ticket not found. Please check your Tracking ID.' });
