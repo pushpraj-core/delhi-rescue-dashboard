@@ -23,6 +23,7 @@ interface Ticket {
   assigned_team?: string | null;
   notes?: { text: string; author: string; createdAt: string }[];
   priority?: string;
+  trackingId?: string;
 }
 
 interface AuditLogEntry {
@@ -476,7 +477,7 @@ export const AuthorityDashboard: React.FC = () => {
                             <option value="Low">Low</option>
                           </select>
                         </div>
-                        <span className="text-[12px] text-[var(--ink-soft)] font-mono font-semibold bg-[var(--paper-2)] border border-[var(--line-strong)] px-2 py-0.5 rounded-[2px]">ID: {ticket._id.slice(-6)}</span>
+                        <span className="text-[12px] text-[var(--ink-soft)] font-mono font-semibold bg-[var(--paper-2)] border border-[var(--line-strong)] px-2 py-0.5 rounded-[2px]">ID: {ticket.trackingId || ticket._id.slice(-6)}</span>
                       </div>
                       
                       <h3 className="text-[18px] font-display font-bold text-[var(--ink)] mt-1">{ticket.user_category}</h3>

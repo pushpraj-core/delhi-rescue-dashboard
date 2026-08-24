@@ -11,6 +11,7 @@ interface Ticket {
   priority?: string;
   isEmergency?: boolean;
   createdAt: string;
+  trackingId?: string;
 }
 
 const STATUSES = ['New Reports', 'Under Review', 'Field Team Dispatched', 'Case Closed (CWC)'];
@@ -54,7 +55,7 @@ const TicketCard = ({ ticket, onClick, onStatusChange, onTeamAssign }: { ticket:
       <div>
         <div className="flex justify-between items-start mb-3" onClick={onClick}>
           <div className="flex gap-2 items-center">
-            <span className="text-[10px] font-mono font-bold text-[var(--ink-soft)] bg-[var(--line)]/10 px-1.5 py-0.5 rounded-md">ID: {ticket._id.slice(-6)}</span>
+            <span className="text-[10px] font-mono font-bold text-[var(--ink-soft)] bg-[var(--line)]/10 px-1.5 py-0.5 rounded-md">ID: {ticket.trackingId || ticket._id.slice(-6)}</span>
             <span className="text-[10px] font-mono font-bold text-[var(--ink-soft)] bg-[var(--line)]/10 px-1.5 py-0.5 rounded-md flex items-center gap-1"><Clock className="w-3 h-3"/> {timeAgo(ticket.createdAt)}</span>
           </div>
           {ticket.confidence_score < 60 && (
