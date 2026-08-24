@@ -50,6 +50,19 @@ const ReportDocument = ({ data }: { data: any }) => (
         ))}
       </View>
 
+      <View style={styles.section}>
+        <Text style={styles.title}>Team Assignment Breakdown</Text>
+        {Object.entries(data.teams || {}).map(([team, count]: any) => (
+          <View style={styles.row} key={team}>
+            <Text style={styles.label}>{team}</Text>
+            <Text style={styles.value}>{count} incident(s)</Text>
+          </View>
+        ))}
+        {Object.keys(data.teams || {}).length === 0 && (
+          <Text style={styles.label}>No teams dispatched currently.</Text>
+        )}
+      </View>
+
       <Text style={styles.footer}>
         This is a highly confidential document generated securely by the Raksha system.
       </Text>
@@ -66,6 +79,12 @@ export const ReportGenerator = ({ tickets }: { tickets: any[] }) => {
     closed: tickets.filter(t => t.status === 'Case Closed (CWC)').length,
     districts: tickets.reduce((acc, t) => {
       acc[t.district_id] = (acc[t.district_id] || 0) + 1;
+      return acc;
+    }, {}),
+    teams: tickets.reduce((acc, t) => {
+      if (t.assigned_team) {
+        acc[t.assigned_team] = (acc[t.assigned_team] || 0) + 1;
+      }
       return acc;
     }, {})
   };
