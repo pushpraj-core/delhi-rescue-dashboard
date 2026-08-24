@@ -49,6 +49,12 @@ export const AuthorityDashboard: React.FC = () => {
   const [khoyaPayaResults, setKhoyaPayaResults] = useState<Record<string, any>>({});
   const [noteInputs, setNoteInputs] = useState<Record<string, string>>({});
   const [auditLogs, setAuditLogs] = useState<AuditLogEntry[]>([]);
+  const [toast, setToast] = useState<{message: string, type: 'success'|'error'} | null>(null);
+
+  const showToast = (message: string, type: 'success'|'error' = 'success') => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3000);
+  };
   
   const [activeTab, setActiveTab] = useState<'map' | 'board' | 'list' | 'audit'>('board');
 
@@ -149,18 +155,18 @@ export const AuthorityDashboard: React.FC = () => {
 
   const handleStatusUpdate = async (id: string, newStatus: string) => {
     try {
-      // Optimistic update
       setTickets(prev => prev.map(t => t._id === id ? { ...t, status: newStatus } : t));
-      
       const res = await fetch(`/api/tickets/${id}/status`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: newStatus })
       });
       if (!res.ok) throw new Error('Failed to update status');
+      showToast(`Status updated to ${newStatus}`);
     } catch (err) {
       console.error(err);
-      fetchTickets(); // Revert on failure
+      fetchTickets();
+      showToast('Failed to update status', 'error');
     }
   };
 
@@ -173,9 +179,11 @@ export const AuthorityDashboard: React.FC = () => {
         body: JSON.stringify({ status: 'Field Team Dispatched', assigned_team: team || null })
       });
       if (!res.ok) throw new Error('Failed to assign team');
+      showToast(`Team assigned: ${team}`);
     } catch (err) {
       console.error(err);
       fetchTickets();
+      showToast('Failed to assign team', 'error');
     }
   };
 
@@ -188,9 +196,11 @@ export const AuthorityDashboard: React.FC = () => {
         body: JSON.stringify({ priority })
       });
       if (!res.ok) throw new Error('Failed to update priority');
+      showToast(`Priority updated to ${priority}`);
     } catch (err) {
       console.error(err);
       fetchTickets();
+      showToast('Failed to update priority', 'error');
     }
   };
 
@@ -520,8 +530,14 @@ export const AuthorityDashboard: React.FC = () => {
                                     const data = await res.json();
                                     setTickets(prev => prev.map(t => t._id === ticket._id ? { ...t, notes: data.notes } : t));
                                     setNoteInputs(prev => ({ ...prev, [ticket._id]: '' }));
+                                    showToast('Note added securely');
+                                  } else {
+                                    showToast('Failed to add note', 'error');
                                   }
-                                } catch (err) { console.error(err); }
+                                } catch (err) { 
+                                  console.error(err);
+                                  showToast('Failed to add note', 'error');
+                                }
                               }
                             }}
                           />
@@ -538,8 +554,14 @@ export const AuthorityDashboard: React.FC = () => {
                                   const data = await res.json();
                                   setTickets(prev => prev.map(t => t._id === ticket._id ? { ...t, notes: data.notes } : t));
                                   setNoteInputs(prev => ({ ...prev, [ticket._id]: '' }));
+                                  showToast('Note added securely');
+                                } else {
+                                  showToast('Failed to add note', 'error');
                                 }
-                              } catch (err) { console.error(err); }
+                              } catch (err) { 
+                                console.error(err);
+                                showToast('Failed to add note', 'error');
+                              }
                             }}
                             className="px-3 py-2 bg-[var(--ink)] text-white hover:bg-[var(--ink-soft)] transition-colors"
                           >
@@ -604,6 +626,16 @@ export const AuthorityDashboard: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* Global Toast */}
+      {toast && (
+        <div className={`fixed bottom-6 right-6 px-4 py-3 rounded-lg shadow-lg border backdrop-blur-md flex items-center gap-2 z-50 animate-fade-in ${
+          toast.type === 'error' ? 'bg-red-50 text-red-800 border-red-200' : 'bg-[var(--teal)] text-white border-[var(--teal)]/80'
+        }`}>
+          {toast.type === 'error' ? <AlertCircle className="w-4 h-4" /> : <CheckCircle className="w-4 h-4" />}
+          <span className="text-[13px] font-semibold">{toast.message}</span>
+        </div>
+      )}
     </div>
   );
 };
