@@ -4,7 +4,7 @@ const auditLogSchema = new mongoose.Schema({
   action: {
     type: String,
     required: true,
-    enum: ['STATUS_UPDATE', 'EVIDENCE_DECRYPTED', 'KHOYA_PAYA_CHECK']
+    enum: ['STATUS_UPDATE', 'EVIDENCE_DECRYPTED', 'KHOYA_PAYA_CHECK', 'NOTE_ADDED']
   },
   ticketId: {
     type: mongoose.Schema.Types.ObjectId,

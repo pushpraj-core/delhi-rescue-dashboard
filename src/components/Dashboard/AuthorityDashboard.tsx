@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Shield, Key, Eye, Lock, MapPin, AlertCircle, Map, LayoutDashboard, List, Activity, UserCheck, Users, MessageSquare, Send } from 'lucide-react';
+import { Shield, Key, Eye, Lock, MapPin, AlertCircle, Map, LayoutDashboard, List, Activity, UserCheck, Users, MessageSquare, Send, FileText, History } from 'lucide-react';
 import { GoogleLogin } from '@react-oauth/google';
 import type { EncryptedPayload } from '../../utils/crypto';
 import { decryptImagePayload } from '../../utils/crypto';
@@ -25,6 +25,15 @@ interface Ticket {
   priority?: string;
 }
 
+interface AuditLogEntry {
+  _id: string;
+  action: string;
+  ticketId: string;
+  officerId: string;
+  details: any;
+  timestamp: string;
+}
+
 export const AuthorityDashboard: React.FC = () => {
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [hotspots, setHotspots] = useState<[number, number, number][]>([]);
@@ -39,13 +48,15 @@ export const AuthorityDashboard: React.FC = () => {
   const [decryptingIds, setDecryptingIds] = useState<Record<string, boolean>>({});
   const [khoyaPayaResults, setKhoyaPayaResults] = useState<Record<string, any>>({});
   const [noteInputs, setNoteInputs] = useState<Record<string, string>>({});
+  const [auditLogs, setAuditLogs] = useState<AuditLogEntry[]>([]);
   
-  const [activeTab, setActiveTab] = useState<'map' | 'board' | 'list'>('board');
+  const [activeTab, setActiveTab] = useState<'map' | 'board' | 'list' | 'audit'>('board');
 
   useEffect(() => {
     if (isAuthenticated) {
       fetchTickets();
       fetchHotspots();
+      fetchAuditLogs();
     }
   }, [isAuthenticated]);
 
@@ -282,6 +293,12 @@ export const AuthorityDashboard: React.FC = () => {
           >
             <List className="w-4 h-4" /> Evidence Vault
           </button>
+          <button
+            onClick={() => setActiveTab('audit')}
+            className={`px-5 py-3 font-semibold text-[14px] flex items-center gap-2 border-b-[2px] transition-colors ${activeTab === 'audit' ? 'border-[var(--teal)] text-[var(--ink)]' : 'border-transparent text-[var(--ink-soft)] hover:text-[var(--ink)] hover:bg-[var(--line)]'}`}
+          >
+            <History className="w-4 h-4" /> Audit Trail
+          </button>
         </div>
 
         {/* Main Content Area */}
@@ -484,6 +501,54 @@ export const AuthorityDashboard: React.FC = () => {
                     </div>
                   </div>
                 ))}
+              </div>
+            )}
+
+            {/* Audit Trail View */}
+            {activeTab === 'audit' && (
+              <div className="bg-white/30 backdrop-blur border border-[var(--line-strong)] rounded-[3px] overflow-hidden">
+                <div className="bg-[var(--paper-2)] px-4 py-3 border-b border-[var(--line-strong)] flex items-center gap-2">
+                  <History className="w-4 h-4 text-[var(--ink)]" />
+                  <h3 className="font-display font-bold text-[var(--ink)]">System Audit Log</h3>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="bg-[var(--paper)] text-[10px] font-mono text-[var(--teal)] uppercase tracking-wider border-b border-[var(--line-strong)]">
+                        <th className="px-4 py-3 font-bold">Timestamp</th>
+                        <th className="px-4 py-3 font-bold">Action</th>
+                        <th className="px-4 py-3 font-bold">Officer ID</th>
+                        <th className="px-4 py-3 font-bold">Ticket Ref</th>
+                        <th className="px-4 py-3 font-bold">IP Address</th>
+                      </tr>
+                    </thead>
+                    <tbody className="text-[12px] text-[var(--ink)]">
+                      {auditLogs.map((log) => (
+                        <tr key={log._id} className="border-b border-[var(--line)] hover:bg-white/50 transition-colors">
+                          <td className="px-4 py-2 font-mono whitespace-nowrap">{new Date(log.timestamp).toLocaleString()}</td>
+                          <td className="px-4 py-2">
+                            <span className={`px-2 py-0.5 rounded-[2px] font-bold text-[10px] uppercase tracking-wider ${
+                              log.action === 'STATUS_UPDATE' ? 'bg-blue-100 text-blue-800 border border-blue-200'
+                              : log.action === 'EVIDENCE_DECRYPTED' ? 'bg-[var(--stamp)]/10 text-[var(--stamp)] border border-[var(--stamp)]/30'
+                              : log.action === 'NOTE_ADDED' ? 'bg-green-100 text-green-800 border border-green-200'
+                              : 'bg-gray-100 text-gray-800 border border-gray-200'
+                            }`}>
+                              {log.action.replace('_', ' ')}
+                            </span>
+                          </td>
+                          <td className="px-4 py-2 font-semibold">{log.officerId}</td>
+                          <td className="px-4 py-2 font-mono text-[10px]">{log.ticketId?.slice(-6) || 'N/A'}</td>
+                          <td className="px-4 py-2 font-mono text-[var(--ink-soft)]">{log.details?.ip || 'N/A'}</td>
+                        </tr>
+                      ))}
+                      {auditLogs.length === 0 && (
+                        <tr>
+                          <td colSpan={5} className="px-4 py-8 text-center text-[var(--ink-soft)] italic">No audit logs found.</td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             )}
 

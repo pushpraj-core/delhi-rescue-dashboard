@@ -2,8 +2,20 @@ const express = require('express');
 const { ingestTicket, getTickets } = require('../services/ticketService');
 const { logAction } = require('../middleware/auditMiddleware');
 const Ticket = require('../models/Ticket');
+const AuditLog = require('../models/AuditLog');
 
 const router = express.Router();
+
+// GET /api/tickets/audit-log - Retrieve audit trail for dashboard
+router.get('/audit-log', async (req, res) => {
+  try {
+    const logs = await AuditLog.find().sort({ timestamp: -1 }).limit(200).lean();
+    res.json({ logs });
+  } catch (error) {
+    console.error('[Audit Log Error]:', error.message);
+    res.status(500).json({ error: 'Failed to fetch audit logs' });
+  }
+});
 
 // GET /api/tickets/hotspots - Aggregation for Heatmap
 router.get('/hotspots', async (req, res) => {
