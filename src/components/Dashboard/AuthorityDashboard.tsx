@@ -92,6 +92,16 @@ export const AuthorityDashboard: React.FC = () => {
     }
   };
 
+  const fetchAuditLogs = async () => {
+    try {
+      const res = await fetch('/api/tickets/audit-log');
+      const data = await res.json();
+      if (res.ok) setAuditLogs(data.logs || []);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   const handleGoogleSuccess = async (credentialResponse: any) => {
     try {
       setGoogleAuthError(null);
