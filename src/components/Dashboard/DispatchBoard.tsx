@@ -10,6 +10,7 @@ interface Ticket {
   assigned_team?: string | null;
   priority?: string;
   isEmergency?: boolean;
+  createdAt: string;
 }
 
 const STATUSES = ['New Reports', 'Under Review', 'Field Team Dispatched', 'Case Closed (CWC)'];
@@ -29,6 +30,22 @@ const normalizeStatus = (status: string) => {
   return 'New Reports';
 };
 
+const timeAgo = (dateStr: string) => {
+  if (!dateStr) return '';
+  const seconds = Math.floor((new Date().getTime() - new Date(dateStr).getTime()) / 1000);
+  let interval = seconds / 31536000;
+  if (interval > 1) return Math.floor(interval) + "y ago";
+  interval = seconds / 2592000;
+  if (interval > 1) return Math.floor(interval) + "m ago";
+  interval = seconds / 86400;
+  if (interval > 1) return Math.floor(interval) + "d ago";
+  interval = seconds / 3600;
+  if (interval > 1) return Math.floor(interval) + "h ago";
+  interval = seconds / 60;
+  if (interval > 1) return Math.floor(interval) + "m ago";
+  return Math.floor(seconds) + "s ago";
+};
+
 const TicketCard = ({ ticket, onClick, onStatusChange, onTeamAssign }: { ticket: Ticket, onClick: () => void, onStatusChange: (id: string, status: string) => void, onTeamAssign: (id: string, team: string) => void }) => {
   const isDispatched = ticket.status === 'Field Team Dispatched';
 
@@ -36,7 +53,10 @@ const TicketCard = ({ ticket, onClick, onStatusChange, onTeamAssign }: { ticket:
     <div className="bg-white/90 backdrop-blur p-4 rounded-xl border border-[var(--line)] shadow-sm hover:shadow-md hover:-translate-y-[1px] transition-all flex flex-col justify-between">
       <div>
         <div className="flex justify-between items-start mb-3" onClick={onClick}>
-          <span className="text-[10px] font-mono font-bold text-[var(--ink-soft)] bg-[var(--line)]/10 px-1.5 py-0.5 rounded-md">ID: {ticket._id.slice(-6)}</span>
+          <div className="flex gap-2 items-center">
+            <span className="text-[10px] font-mono font-bold text-[var(--ink-soft)] bg-[var(--line)]/10 px-1.5 py-0.5 rounded-md">ID: {ticket._id.slice(-6)}</span>
+            <span className="text-[10px] font-mono font-bold text-[var(--ink-soft)] bg-[var(--line)]/10 px-1.5 py-0.5 rounded-md flex items-center gap-1"><Clock className="w-3 h-3"/> {timeAgo(ticket.createdAt)}</span>
+          </div>
           {ticket.confidence_score < 60 && (
             <AlertCircle className="w-4 h-4 text-[var(--stamp)]" />
           )}
