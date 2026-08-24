@@ -418,7 +418,16 @@ export const AuthorityDashboard: React.FC = () => {
                         <div className="flex gap-2 items-center">
                           <select
                             value={ticket.status}
-                            onChange={(e) => handleStatusUpdate(ticket._id, e.target.value)}
+                            onChange={(e) => {
+                              const newStatus = e.target.value;
+                              if (newStatus === 'Case Closed (CWC)') {
+                                if (window.confirm('Are you sure you want to close this case? Ensure all CWC proceedings are complete.')) {
+                                  handleStatusUpdate(ticket._id, newStatus);
+                                }
+                              } else {
+                                handleStatusUpdate(ticket._id, newStatus);
+                              }
+                            }}
                             className={`px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider rounded-[2px] border-[1.5px] outline-none cursor-pointer appearance-none ${
                               ticket.status.includes('Closed') ? 'bg-[var(--paper-2)] text-[var(--ink-soft)] border-[var(--line-strong)]' 
                               : ticket.status.includes('High') || ticket.isEmergency ? 'bg-[rgba(162,59,46,0.1)] text-[var(--stamp)] border-[rgba(162,59,46,0.5)]' 

@@ -96,7 +96,16 @@ const TicketCard = ({ ticket, onClick, onStatusChange, onTeamAssign }: { ticket:
         </div>
         <select
           value={ticket.status}
-          onChange={(e) => onStatusChange(ticket._id, e.target.value)}
+          onChange={(e) => {
+            const newStatus = e.target.value;
+            if (newStatus === 'Case Closed (CWC)') {
+              if (window.confirm('Are you sure you want to close this case? Ensure all CWC proceedings are complete.')) {
+                onStatusChange(ticket._id, newStatus);
+              }
+            } else {
+              onStatusChange(ticket._id, newStatus);
+            }
+          }}
           className="text-[11px] font-semibold p-1.5 rounded-lg border border-[var(--line)] bg-white/50 text-[var(--ink)] outline-none cursor-pointer w-[130px] uppercase tracking-wider focus:border-[var(--teal)] hover:bg-white transition-colors"
         >
           {STATUSES.map(status => (
