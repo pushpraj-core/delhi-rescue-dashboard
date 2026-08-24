@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Shield, Key, Eye, Lock, MapPin, AlertCircle, Map, LayoutDashboard, List, Activity, UserCheck, Users, MessageSquare, Send, FileText, History } from 'lucide-react';
+import { Shield, Key, Eye, Lock, MapPin, AlertCircle, Map, LayoutDashboard, List, Activity, UserCheck, Users, MessageSquare, Send, FileText, History, CheckCircle, Clock } from 'lucide-react';
 import { GoogleLogin } from '@react-oauth/google';
 import type { EncryptedPayload } from '../../utils/crypto';
 import { decryptImagePayload } from '../../utils/crypto';
@@ -245,6 +245,14 @@ export const AuthorityDashboard: React.FC = () => {
     );
   }
 
+  // Calculate stats
+  const stats = {
+    total: tickets.length,
+    underReview: tickets.filter(t => t.status === 'Under Review').length,
+    dispatched: tickets.filter(t => t.status === 'Field Team Dispatched').length,
+    closed: tickets.filter(t => t.status === 'Case Closed (CWC)').length,
+  };
+
   return (
     <div className="bg-dotted-paper min-h-[calc(100vh-64px)] font-body text-[var(--ink)] pb-16 pt-8">
       <div className="max-w-[1200px] mx-auto px-6">
@@ -270,6 +278,38 @@ export const AuthorityDashboard: React.FC = () => {
             <button onClick={fetchTickets} className="px-4 py-2 bg-white/60 backdrop-blur border border-[var(--line)] text-[13px] font-semibold rounded-lg hover:bg-white transition shadow-sm flex items-center gap-2">
               <Activity className="w-4 h-4" /> Sync Data
             </button>
+          </div>
+        </div>
+
+        {/* Stats Cards */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+          <div className="bg-white/60 backdrop-blur-md p-4 rounded-xl border border-[var(--line)] shadow-sm">
+            <div className="flex items-center gap-2 mb-2">
+              <FileText className="w-4 h-4 text-[#4285F4]" />
+              <h3 className="font-mono text-[10px] font-bold text-[#4285F4] uppercase tracking-widest">Total Cases</h3>
+            </div>
+            <p className="text-3xl font-display font-bold text-[var(--ink)]">{stats.total}</p>
+          </div>
+          <div className="bg-white/60 backdrop-blur-md p-4 rounded-xl border border-[var(--line)] shadow-sm">
+            <div className="flex items-center gap-2 mb-2">
+              <Clock className="w-4 h-4 text-[var(--saffron)]" />
+              <h3 className="font-mono text-[10px] font-bold text-[var(--saffron)] uppercase tracking-widest">Under Review</h3>
+            </div>
+            <p className="text-3xl font-display font-bold text-[var(--ink)]">{stats.underReview}</p>
+          </div>
+          <div className="bg-[var(--teal)]/10 backdrop-blur-md p-4 rounded-xl border border-[var(--teal)]/30 shadow-sm">
+            <div className="flex items-center gap-2 mb-2">
+              <Users className="w-4 h-4 text-[var(--teal)]" />
+              <h3 className="font-mono text-[10px] font-bold text-[var(--teal)] uppercase tracking-widest">Dispatched</h3>
+            </div>
+            <p className="text-3xl font-display font-bold text-[var(--teal)]">{stats.dispatched}</p>
+          </div>
+          <div className="bg-[var(--paper-2)] backdrop-blur-md p-4 rounded-xl border border-[var(--line-strong)] shadow-sm">
+            <div className="flex items-center gap-2 mb-2">
+              <CheckCircle className="w-4 h-4 text-[var(--ink-soft)]" />
+              <h3 className="font-mono text-[10px] font-bold text-[var(--ink-soft)] uppercase tracking-widest">Closed</h3>
+            </div>
+            <p className="text-3xl font-display font-bold text-[var(--ink)]">{stats.closed}</p>
           </div>
         </div>
 
