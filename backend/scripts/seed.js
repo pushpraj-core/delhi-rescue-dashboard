@@ -15,7 +15,8 @@ const WARDS = ['A', 'B', 'C', 'D', 'E', 'F/N', 'F/S', 'G/N', 'G/S', 'H/E', 'H/W'
 const landBoxes = [
   { minLat: 18.90, maxLat: 19.05, minLng: 72.81, maxLng: 72.84 }, // South
   { minLat: 19.05, maxLat: 19.25, minLng: 72.83, maxLng: 72.86 }, // Western Suburbs
-  { minLat: 19.05, maxLat: 19.18, minLng: 72.88, maxLng: 72.94 }  // Eastern Suburbs
+  { minLat: 19.05, maxLat: 19.18, minLng: 72.88, maxLng: 72.94 }, // Eastern Suburbs
+  { minLat: 18.98, maxLat: 19.16, minLng: 72.98, maxLng: 73.11 }  // Navi Mumbai
 ];
 
 const getRandomMumbaiCoords = () => {
