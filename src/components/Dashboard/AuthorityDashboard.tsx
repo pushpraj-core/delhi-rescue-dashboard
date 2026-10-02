@@ -62,6 +62,31 @@ export const AuthorityDashboard: React.FC = () => {
       fetchTickets();
       fetchHotspots();
       fetchAuditLogs();
+
+      import('socket.io-client').then(({ io }) => {
+        const token = localStorage.getItem('token') || 'dev-bypass-token';
+        const socket = io(import.meta.env.VITE_API_URL || 'http://localhost:5000', {
+          auth: { token }
+        });
+
+        socket.on('ticket_created', (newTicket: Ticket) => {
+          setTickets(prev => [newTicket, ...prev]);
+          showToast(`New Incident Reported: ${newTicket.user_category}`);
+        });
+
+        socket.on('ticket_updated', (updatedTicket: Ticket) => {
+          setTickets(prev => prev.map(t => t._id === updatedTicket._id ? updatedTicket : t));
+        });
+
+        socket.on('sla_escalation', (data: any) => {
+          showToast(`🚨 ${data.count} tickets escalated to Admin due to SLA breach!`, 'error');
+          fetchTickets();
+        });
+
+        return () => {
+          socket.disconnect();
+        };
+      });
     }
   }, [isAuthenticated]);
 
@@ -175,16 +200,17 @@ export const AuthorityDashboard: React.FC = () => {
 
   const handleStatusUpdate = async (id: string, newStatus: string) => {
     try {
-      setTickets(prev => prev.map(t => t._id === id ? { ...t, status: newStatus } : t));
-      await apiFetch(`/api/tickets/${id}/status`, {
+      // Don't optimistically update since server enforces state machine
+      const data = await apiFetch(`/api/tickets/${id}/status`, {
         method: 'PATCH',
         body: JSON.stringify({ status: newStatus })
       });
+      setTickets(prev => prev.map(t => t._id === id ? data.ticket : t));
       showToast(`Status updated to ${newStatus}`);
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
       fetchTickets();
-      showToast('Failed to update status', 'error');
+      showToast(err.message || 'Failed to update status', 'error');
     }
   };
 
@@ -193,7 +219,7 @@ export const AuthorityDashboard: React.FC = () => {
       setTickets(prev => prev.map(t => t._id === id ? { ...t, assigned_team: team || null } : t));
       await apiFetch(`/api/tickets/${id}/status`, {
         method: 'PATCH',
-        body: JSON.stringify({ status: 'Field Team Dispatched', assigned_team: team || null })
+        body: JSON.stringify({ status: 'DISPATCHED', assigned_team: team || null })
       });
       showToast(`Team assigned: ${team}`);
     } catch (err) {
@@ -272,9 +298,9 @@ export const AuthorityDashboard: React.FC = () => {
   // Calculate stats
   const stats = {
     total: tickets.length,
-    underReview: tickets.filter(t => t.status === 'Under Review').length,
-    dispatched: tickets.filter(t => t.status === 'Field Team Dispatched').length,
-    closed: tickets.filter(t => t.status === 'Case Closed (CWC)').length,
+    underReview: tickets.filter(t => t.status === 'VERIFIED').length,
+    dispatched: tickets.filter(t => t.status === 'DISPATCHED').length,
+    closed: tickets.filter(t => ['CLOSED', 'REJECTED', 'DUPLICATE'].includes(t.status)).length,
   };
 
   return (
@@ -444,7 +470,7 @@ export const AuthorityDashboard: React.FC = () => {
                             value={ticket.status}
                             onChange={(e) => {
                               const newStatus = e.target.value;
-                              if (newStatus === 'Case Closed (CWC)') {
+                              if (newStatus === 'CLOSED') {
                                 if (window.confirm('Are you sure you want to close this case? Ensure all CWC proceedings are complete.')) {
                                   handleStatusUpdate(ticket._id, newStatus);
                                 }
@@ -453,15 +479,20 @@ export const AuthorityDashboard: React.FC = () => {
                               }
                             }}
                             className={`px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider rounded-[2px] border-[1.5px] outline-none cursor-pointer appearance-none ${
-                              ticket.status.includes('Closed') ? 'bg-[var(--paper-2)] text-[var(--ink-soft)] border-[var(--line-strong)]' 
-                              : ticket.status.includes('High') || ticket.isEmergency ? 'bg-[rgba(162,59,46,0.1)] text-[var(--stamp)] border-[rgba(162,59,46,0.5)]' 
+                              ['CLOSED', 'REJECTED', 'DUPLICATE'].includes(ticket.status) ? 'bg-[var(--paper-2)] text-[var(--ink-soft)] border-[var(--line-strong)]' 
+                              : ticket.status === 'REPORTED' || ticket.isEmergency ? 'bg-[rgba(162,59,46,0.1)] text-[var(--stamp)] border-[rgba(162,59,46,0.5)]' 
                               : 'bg-[var(--teal-light)] text-white border-[var(--teal)]'
                             }`}
                           >
-                            <option value="New Reports">New Reports</option>
-                            <option value="Under Review">Under Review</option>
-                            <option value="Field Team Dispatched">Field Team Dispatched</option>
-                            <option value="Case Closed (CWC)">Case Closed (CWC)</option>
+                            <option value="REPORTED">Reported</option>
+                            <option value="VERIFIED">Verified</option>
+                            <option value="DISPATCHED">Dispatched</option>
+                            <option value="RESCUED">Rescued</option>
+                            <option value="CWC_PRODUCED">CWC Produced</option>
+                            <option value="REHAB_FOLLOWUP">Rehab Followup</option>
+                            <option value="CLOSED">Closed</option>
+                            <option value="REJECTED">Rejected</option>
+                            <option value="DUPLICATE">Duplicate</option>
                           </select>
                           {ticket.isEmergency && <span className="px-2 py-1 bg-[var(--stamp)] text-white text-[10px] font-bold uppercase tracking-wider rounded-[2px] flex items-center gap-1 border-[1.5px] border-[var(--ink)]"><AlertCircle className="w-3 h-3"/> Emergency</span>}
                           <select

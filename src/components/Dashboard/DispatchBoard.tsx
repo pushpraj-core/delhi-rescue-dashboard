@@ -11,24 +11,18 @@ interface Ticket {
   priority?: string;
   isEmergency?: boolean;
   createdAt: string;
+  slaBreachAt?: string;
+  escalated?: boolean;
   trackingId?: string;
 }
 
-const STATUSES = ['New Reports', 'Under Review', 'Field Team Dispatched', 'Case Closed (CWC)'];
+const STATUSES = ['REPORTED', 'VERIFIED', 'DISPATCHED', 'RESCUED', 'CWC_PRODUCED', 'REHAB_FOLLOWUP', 'CLOSED', 'REJECTED', 'DUPLICATE'];
 
-const TEAMS = [
-  'DCPU Rapid Response Alpha',
-  'DCPU Rapid Response Bravo',
-  'CWC Mobile Unit 1',
-  'CWC Mobile Unit 2',
-  'Local Police PCR Van',
-  'NGO Partner – SOS Children',
-  'NGO Partner – Bachpan Bachao',
-];
+// TEAMS are now fetched from API
 
 const normalizeStatus = (status: string) => {
   if (STATUSES.includes(status)) return status;
-  return 'New Reports';
+  return 'REPORTED';
 };
 
 const timeAgo = (dateStr: string) => {
@@ -47,16 +41,42 @@ const timeAgo = (dateStr: string) => {
   return Math.floor(seconds) + "s ago";
 };
 
-const TicketCard = ({ ticket, onClick, onStatusChange, onTeamAssign }: { ticket: Ticket, onClick: () => void, onStatusChange: (id: string, status: string) => void, onTeamAssign: (id: string, team: string) => void }) => {
-  const isDispatched = ticket.status === 'Field Team Dispatched';
+const TicketCard = ({ ticket, onClick, onStatusChange, onTeamAssign, availableTeams }: { ticket: Ticket, onClick: () => void, onStatusChange: (id: string, status: string) => void, onTeamAssign: (id: string, team: string) => void, availableTeams: any[] }) => {
+  const isDispatched = ticket.status === 'DISPATCHED';
+
+  let slaWarning = false;
+  let slaText = '';
+  
+  if (ticket.slaBreachAt) {
+    const msLeft = new Date(ticket.slaBreachAt).getTime() - Date.now();
+    if (msLeft <= 0) {
+      slaWarning = true;
+      slaText = 'BREACHED';
+    } else {
+      const hours = Math.floor(msLeft / 3600000);
+      const minutes = Math.floor((msLeft % 3600000) / 60000);
+      slaText = `${hours}h ${minutes}m left`;
+      if (hours < 1) slaWarning = true;
+    }
+  }
 
   return (
-    <div className="bg-white/90 backdrop-blur p-4 rounded-xl border border-[var(--line)] shadow-sm hover:shadow-md hover:-translate-y-[1px] transition-all flex flex-col justify-between">
+    <div className={`bg-white/90 backdrop-blur p-4 rounded-xl border ${slaWarning && !['CLOSED', 'REJECTED', 'DUPLICATE'].includes(ticket.status) ? 'border-[var(--stamp)] shadow-[0_0_8px_rgba(162,59,46,0.3)]' : 'border-[var(--line)]'} shadow-sm hover:shadow-md hover:-translate-y-[1px] transition-all flex flex-col justify-between`}>
       <div>
         <div className="flex justify-between items-start mb-3" onClick={onClick}>
-          <div className="flex gap-2 items-center">
+          <div className="flex flex-wrap gap-2 items-center">
             <span className="text-[10px] font-mono font-bold text-[var(--ink-soft)] bg-[var(--line)]/10 px-1.5 py-0.5 rounded-md">ID: {ticket.trackingId || ticket._id.slice(-6)}</span>
             <span className="text-[10px] font-mono font-bold text-[var(--ink-soft)] bg-[var(--line)]/10 px-1.5 py-0.5 rounded-md flex items-center gap-1"><Clock className="w-3 h-3"/> {timeAgo(ticket.createdAt)}</span>
+            {ticket.slaBreachAt && !['CLOSED', 'REJECTED', 'DUPLICATE'].includes(ticket.status) && (
+               <span className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded-md flex items-center gap-1 ${slaWarning ? 'bg-[var(--stamp)]/10 text-[var(--stamp)]' : 'bg-orange-100 text-orange-800'}`}>
+                 SLA: {slaText}
+               </span>
+            )}
+            {ticket.escalated && (
+               <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded-md bg-[var(--stamp)] text-white animate-pulse">
+                 ESCALATED
+               </span>
+            )}
           </div>
           {ticket.confidence_score < 60 && (
             <AlertCircle className="w-4 h-4 text-[var(--stamp)]" />
@@ -75,18 +95,36 @@ const TicketCard = ({ ticket, onClick, onStatusChange, onTeamAssign }: { ticket:
 
       {/* Team Assignment Dropdown – only shown when dispatched */}
       {isDispatched && (
-        <div className="mb-3">
-          <label className="text-[10px] font-mono font-bold text-[var(--ink-soft)] uppercase tracking-wider mb-1 block">Assign Team</label>
+        <div className="mb-3 flex items-center gap-2">
           <select
             value={ticket.assigned_team || ''}
             onChange={(e) => onTeamAssign(ticket._id, e.target.value)}
-            className="w-full text-[12px] font-semibold p-2 rounded-lg border border-[var(--teal)]/30 bg-[var(--teal)]/5 text-[var(--ink)] outline-none cursor-pointer focus:border-[var(--teal)] hover:bg-[var(--teal)]/10 transition-colors"
+            className="flex-1 text-[12px] font-semibold p-2 rounded-lg border border-[var(--teal)]/30 bg-[var(--teal)]/5 text-[var(--ink)] outline-none cursor-pointer focus:border-[var(--teal)] hover:bg-[var(--teal)]/10 transition-colors"
           >
             <option value="">— Select Team —</option>
-            {TEAMS.map(team => (
-              <option key={team} value={team}>{team}</option>
+            {availableTeams.map(team => (
+              <option key={team.name} value={team.name}>{team.name} ({team.ward})</option>
             ))}
           </select>
+          <button 
+            onClick={async () => {
+              try {
+                const { apiFetch } = await import('../../utils/apiClient');
+                const data = await apiFetch(`/api/teams/suggest/${ticket._id}`);
+                if (data.teams && data.teams.length > 0) {
+                  onTeamAssign(ticket._id, data.teams[0].name);
+                } else {
+                  alert('No teams available nearby.');
+                }
+              } catch(e) {
+                console.error(e);
+              }
+            }}
+            className="px-2 py-2 text-[10px] font-bold uppercase bg-[var(--teal)] text-white rounded-lg hover:bg-[var(--teal)]/80 transition-colors"
+            title="Suggest nearest available team"
+          >
+            Suggest
+          </button>
         </div>
       )}
       
@@ -99,7 +137,7 @@ const TicketCard = ({ ticket, onClick, onStatusChange, onTeamAssign }: { ticket:
           value={ticket.status}
           onChange={(e) => {
             const newStatus = e.target.value;
-            if (newStatus === 'Case Closed (CWC)') {
+            if (newStatus === 'CLOSED') {
               if (window.confirm('Are you sure you want to close this case? Ensure all CWC proceedings are complete.')) {
                 onStatusChange(ticket._id, newStatus);
               }
@@ -119,8 +157,9 @@ const TicketCard = ({ ticket, onClick, onStatusChange, onTeamAssign }: { ticket:
 };
 
 export const DispatchBoard = ({ rawTickets, onTicketUpdate, onTicketClick, onTeamAssign }: { rawTickets: Ticket[], onTicketUpdate: (id: string, status: string) => void, onTicketClick: (ticket: Ticket) => void, onTeamAssign: (id: string, team: string) => void }) => {
-  const [activeStatus, setActiveStatus] = useState<string>('New Reports');
+  const [activeStatus, setActiveStatus] = useState<string>('REPORTED');
   const [tickets, setTickets] = useState<Ticket[]>([]);
+  const [teams, setTeams] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterDistrict, setFilterDistrict] = useState('');
   const [filterCategory, setFilterCategory] = useState('');
@@ -129,6 +168,12 @@ export const DispatchBoard = ({ rawTickets, onTicketUpdate, onTicketClick, onTea
   useEffect(() => {
     setTickets(rawTickets.map(t => ({ ...t, status: normalizeStatus(t.status) })));
   }, [rawTickets]);
+
+  useEffect(() => {
+    import('../../utils/apiClient').then(({ apiFetch }) => {
+      apiFetch('/api/teams').then(data => setTeams(data.teams || [])).catch(console.error);
+    });
+  }, []);
 
   const districts = [...new Set(tickets.map(t => t.district_id))].sort();
   const categories = [...new Set(tickets.map(t => t.user_category))].sort();
@@ -215,6 +260,7 @@ export const DispatchBoard = ({ rawTickets, onTicketUpdate, onTicketClick, onTea
                 onClick={() => onTicketClick(ticket)} 
                 onStatusChange={onTicketUpdate}
                 onTeamAssign={onTeamAssign}
+                availableTeams={teams}
               />
             ))}
           </div>

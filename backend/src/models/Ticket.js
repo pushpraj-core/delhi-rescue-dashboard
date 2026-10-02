@@ -58,10 +58,14 @@ const ticketSchema = new mongoose.Schema({
     enum: ['Critical', 'High', 'Medium', 'Low'],
     default: 'Medium'
   },
+  railwayJurisdiction: {
+    type: Boolean,
+    default: false
+  },
   status: {
     type: String,
-    enum: ['New Reports', 'Under Review', 'Field Team Dispatched', 'Case Closed (CWC)'],
-    default: 'New Reports'
+    enum: ['REPORTED', 'VERIFIED', 'DISPATCHED', 'RESCUED', 'CWC_PRODUCED', 'REHAB_FOLLOWUP', 'CLOSED', 'REJECTED', 'DUPLICATE'],
+    default: 'REPORTED'
   },
   assigned_team: {
     type: String,
@@ -72,6 +76,13 @@ const ticketSchema = new mongoose.Schema({
     author: { type: String, default: 'Nodal_Officer_DL_01' },
     createdAt: { type: Date, default: Date.now }
   }],
+  slaBreachAt: {
+    type: Date
+  },
+  escalated: {
+    type: Boolean,
+    default: false
+  },
   createdAt: {
     type: Date,
     default: Date.now

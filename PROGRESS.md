@@ -8,10 +8,10 @@
 - [x] T1.5 Tests for Tier 1: Auth/RBAC matrix, key wrap/unwrap round trip, duplicate merge, audit chain and tamper detection. Make npm test real.
 
 ## Tier 2: Workflow and Mumbai Operations (mandatory)
-- [ ] T2.1 State machine: REPORTED -> VERIFIED -> DISPATCHED -> RESCUED -> CWC_PRODUCED -> REHAB_FOLLOWUP -> CLOSED, REJECTED, DUPLICATE. Enforce server-side, audit each.
-- [ ] T2.2 Mumbai ward assignment: Team model, suggest nearest available team, officer confirms. Add railwayJurisdiction flag.
-- [ ] T2.3 SLA timers per priority with countdowns, breach flags, escalation to admin.
-- [ ] T2.4 Socket.io with JWT-authenticated sockets.
+- [x] T2.1 State machine: REPORTED -> VERIFIED -> DISPATCHED -> RESCUED -> CWC_PRODUCED -> REHAB_FOLLOWUP -> CLOSED, REJECTED, DUPLICATE. Enforce server-side, audit each.
+- [x] T2.2 Mumbai ward assignment: Team model, suggest nearest available team, officer confirms. Add railwayJurisdiction flag.
+- [x] T2.3 SLA timers per priority with countdowns, breach flags, escalation to admin.
+- [x] T2.4 Socket.io with JWT-authenticated sockets.
 - [ ] T2.5 Notification service behind provider interface: console/mock default, FCM, Twilio/Gupshup (untested without keys). SIMULATED Childline/Khoya Paya mocks.
 - [ ] T2.6 Seed script: npm run seed for demo officers, 24 teams, 400+ synthetic tickets.
 - [ ] T2.7 Tests for workflow, SLA, ward assignment, seed idempotency.

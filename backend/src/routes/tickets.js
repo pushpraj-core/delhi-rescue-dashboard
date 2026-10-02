@@ -99,6 +99,14 @@ router.post('/', async (req, res) => {
 
     // Call secure ingestion service
     const result = await ingestTicket({ longitude, latitude, encryptedPayload, confidence_score, user_category, tags, isEmergency });
+    
+    // Emit real-time event
+    const io = req.app.get('io');
+    if (io && result.status === 'CREATED') {
+      io.emit('ticket_created', result.ticket);
+    } else if (io) {
+      io.emit('ticket_updated', result.ticket);
+    }
 
     return res.status(result.status === 'CREATED' ? 201 : 200).json({
       message: result.status === 'CREATED' ? 'New Case File Created' : 'Duplicate Ticket Updated',
@@ -143,19 +151,54 @@ router.get('/track/:trackingId', async (req, res) => {
 router.patch('/:id/status', requireAuth, logAction('STATUS_UPDATE'), async (req, res) => {
   try {
     const { status, assigned_team, priority } = req.body;
-    const updateFields = {};
-    if (status) updateFields.status = status;
-    if (priority) updateFields.priority = priority;
+    
+    const ticket = await Ticket.findById(req.params.id);
+    if (!ticket) return res.status(404).json({ error: 'Ticket not found' });
 
-    // Only persist team assignment when dispatching; clear it otherwise
-    if (status === 'Field Team Dispatched' && assigned_team) {
-      updateFields.assigned_team = assigned_team;
-    } else if (status && status !== 'Field Team Dispatched') {
-      updateFields.assigned_team = null;
+    const VALID_TRANSITIONS = {
+      'REPORTED': ['VERIFIED', 'REJECTED', 'DUPLICATE', 'DISPATCHED'], // Dispatched added for quick actions
+      'VERIFIED': ['DISPATCHED'],
+      'DISPATCHED': ['RESCUED'],
+      'RESCUED': ['CWC_PRODUCED'],
+      'CWC_PRODUCED': ['REHAB_FOLLOWUP', 'CLOSED'],
+      'REHAB_FOLLOWUP': ['CLOSED'],
+      'CLOSED': [],
+      'REJECTED': [],
+      'DUPLICATE': []
+    };
+
+    if (status && status !== ticket.status) {
+      const allowed = VALID_TRANSITIONS[ticket.status] || [];
+      if (!allowed.includes(status)) {
+        return res.status(400).json({ error: `Invalid state transition from ${ticket.status} to ${status}` });
+      }
+      ticket.status = status;
     }
 
-    const ticket = await Ticket.findByIdAndUpdate(req.params.id, updateFields, { new: true });
-    if (!ticket) return res.status(404).json({ error: 'Ticket not found' });
+    if (priority && priority !== ticket.priority) {
+      ticket.priority = priority;
+      const slaHours = {
+        'Critical': 1,
+        'High': 4,
+        'Medium': 12,
+        'Low': 24
+      };
+      // Keep original start time, just update the breach horizon
+      ticket.slaBreachAt = new Date(ticket.createdAt.getTime() + slaHours[priority] * 60 * 60 * 1000);
+    }
+
+    // Only persist team assignment when dispatching; clear it otherwise
+    if (status === 'DISPATCHED' && assigned_team) {
+      ticket.assigned_team = assigned_team;
+    } else if (status && status !== 'DISPATCHED' && status !== ticket.status) {
+      ticket.assigned_team = null;
+    }
+
+    await ticket.save();
+    
+    const io = req.app.get('io');
+    if (io) io.emit('ticket_updated', ticket);
+
     res.json({ ticket });
   } catch (error) {
     console.error('[Update Status Error]:', error.message);

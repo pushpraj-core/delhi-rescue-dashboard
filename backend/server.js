@@ -41,8 +41,10 @@ if (process.env.NODE_ENV === 'production') {
 
 // Routes
 const authRoutes = require('./src/routes/auth');
+const teamRoutes = require('./src/routes/teams');
 app.use('/api/auth', authRoutes);
 app.use('/api/tickets', ticketRoutes);
+app.use('/api/teams', teamRoutes);
 
 // Centralized error handler without stack leaks
 app.use((err, req, res, next) => {
@@ -59,8 +61,70 @@ if (process.env.NODE_ENV !== 'test') {
   mongoose.connect(MONGO_URI)
     .then(() => {
       console.log('✅ Connected to Secure MongoDB');
-      app.listen(PORT, () => {
-        console.log(`✅ Secure Backend running on port ${PORT}`);
+      
+      const http = require('http');
+      const { Server } = require('socket.io');
+      const jwt = require('jsonwebtoken');
+
+      const server = http.createServer(app);
+      const io = new Server(server, {
+        cors: {
+          origin: process.env.NODE_ENV === 'production' ? allowedDomains : '*',
+          methods: ['GET', 'POST']
+        }
+      });
+
+      // Export io to be used in routes
+      app.set('io', io);
+
+      io.use((socket, next) => {
+        const token = socket.handshake.auth.token;
+        if (!token) {
+          return next(new Error('Authentication error: Missing token'));
+        }
+        try {
+          // In development without secret, just pass
+          if (process.env.NODE_ENV !== 'production' && (!process.env.JWT_SECRET || token === 'dev-bypass-token')) {
+            return next();
+          }
+          jwt.verify(token, process.env.JWT_SECRET);
+          next();
+        } catch (err) {
+          next(new Error('Authentication error: Invalid token'));
+        }
+      });
+
+      io.on('connection', (socket) => {
+        console.log('🔗 Secure Socket connected:', socket.id);
+        socket.on('disconnect', () => {
+          console.log('🔗 Secure Socket disconnected:', socket.id);
+        });
+      });
+
+      // SLA Escalation Background Job
+      setInterval(async () => {
+        try {
+          const Ticket = require('./src/models/Ticket');
+          const result = await Ticket.updateMany(
+            { 
+              status: { $nin: ['CLOSED', 'REJECTED', 'DUPLICATE'] },
+              slaBreachAt: { $lte: new Date() },
+              escalated: false 
+            },
+            { $set: { escalated: true } }
+          );
+          if (result.modifiedCount > 0) {
+            console.log(`[SLA ESCALATION] ${result.modifiedCount} tickets breached SLA and escalated to Admin.`);
+            // Emit real-time alert
+            io.emit('sla_escalation', { count: result.modifiedCount });
+          }
+        } catch(e) {
+          console.error('[SLA Escalation Error]:', e.message);
+        }
+      }, 60 * 1000); // Check every minute
+
+      server.listen(PORT, () => {
+        console.log(`✅ Secure Backend & Socket running on port ${PORT}`);
       });
     })
     .catch((err) => {

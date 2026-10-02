@@ -39,7 +39,7 @@ const ingestTicket = async (ticketData) => {
   const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000);
 
   // 3. Triage Logic Setup
-  let initialStatus = 'New Reports';
+  let initialStatus = 'REPORTED';
   let priority = 'Medium';
   if (isEmergency) priority = 'Critical';
   else if (confidence_score >= 80) priority = 'High';
@@ -48,7 +48,7 @@ const ingestTicket = async (ticketData) => {
   // 4. Find duplicate within 50 meters that is NOT closed
   const existingTicket = await Ticket.findOne({
     createdAt: { $gte: twoHoursAgo },
-    status: { $ne: 'Case Closed (CWC)' },
+    status: { $nin: ['CLOSED', 'REJECTED'] },
     location: {
       $near: {
         $geometry: {
@@ -69,6 +69,14 @@ const ingestTicket = async (ticketData) => {
   // 5. No duplicate, create new Case File
   const trackingId = generateTrackingId();
   
+  const slaHours = {
+    'Critical': 1,
+    'High': 4,
+    'Medium': 12,
+    'Low': 24
+  };
+  const slaBreachAt = new Date(Date.now() + slaHours[priority] * 60 * 60 * 1000);
+
   const newTicket = new Ticket({
     location: {
       type: 'Point',
@@ -82,7 +90,8 @@ const ingestTicket = async (ticketData) => {
     tags: tags || [],
     isEmergency: isEmergency || false,
     status: initialStatus,
-    priority
+    priority,
+    slaBreachAt
   });
 
   await newTicket.save();
