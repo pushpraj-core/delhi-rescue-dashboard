@@ -120,6 +120,32 @@ export const AnalyticsBoard = ({ tickets }: { tickets: any[] }) => {
             </AreaChart>
           </ResponsiveContainer>
         </div>
+
+        {/* Real ML H3 Data */}
+        <div className="p-4 border-t border-[var(--line)]">
+          <h4 className="text-[12px] font-mono font-bold text-[var(--ink-soft)] uppercase tracking-wider mb-3">Live Geospatial H3 Targets</h4>
+          {loading ? (
+            <div className="text-center text-[12px] text-[var(--ink-soft)] py-4 animate-pulse">Querying Python ML Engine...</div>
+          ) : forecasts.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              {forecasts.slice(0, 9).map((f, i) => (
+                <div key={f.h3_index} className="flex justify-between items-center p-2.5 bg-[var(--sand)] rounded-lg border border-[var(--line)]">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[12px] font-bold text-[var(--ink-soft)] w-4">{i + 1}.</span>
+                    <span className="font-mono text-[11px] text-[var(--ink)] bg-white px-1.5 py-0.5 rounded border border-[var(--line-strong)]">{f.h3_index}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] font-bold uppercase text-[var(--stamp)]">
+                      {f.expected_incidents} alerts
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center text-[12px] text-[var(--ink-soft)] py-4">Real ML Engine is booting...</div>
+          )}
+        </div>
       </div>
     </div>
   );

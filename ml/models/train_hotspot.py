@@ -8,7 +8,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_absolute_error
 
 def get_h3_index(lat, lng, resolution=8):
-    return h3.geo_to_h3(lat, lng, resolution)
+    return h3.latlng_to_cell(lat, lng, resolution)
 
 def train_hotspot_model():
     print("Loading data for hotspot forecast...")
