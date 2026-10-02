@@ -10,7 +10,7 @@ const logAction = (action) => {
       
       const crypto = require('crypto');
       const lastLog = await AuditLog.findOne().sort({ _id: -1 }).select('hash');
-      const previousHash = lastLog ? lastLog.hash : '0000000000000000000000000000000000000000000000000000000000000000';
+      const previousHash = (lastLog && lastLog.hash) ? lastLog.hash : '0000000000000000000000000000000000000000000000000000000000000000';
 
       const dataToHash = `${action}|${ticketId}|${actorId}|${actorRole}|${previousHash}|${Date.now()}`;
       const hash = crypto.createHash('sha256').update(dataToHash).digest('hex');
