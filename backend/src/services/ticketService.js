@@ -41,9 +41,52 @@ const ingestTicket = async (ticketData) => {
   // 3. Triage Logic Setup
   let initialStatus = 'REPORTED';
   let priority = 'Medium';
-  if (isEmergency) priority = 'Critical';
-  else if (confidence_score >= 80) priority = 'High';
-  else if (confidence_score < 50) priority = 'Low';
+  
+  if (isEmergency) {
+    priority = 'Critical';
+  } else {
+    // Attempt ML prediction
+    try {
+      const now = new Date();
+      const payload = {
+        hour: now.getHours(),
+        day_of_week: now.getDay(),
+        month: now.getMonth() + 1,
+        lat: latitude,
+        lng: longitude,
+        ward: district_id,
+        category: user_category,
+        confidence_score: confidence_score
+      };
+      
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 1500); // 1.5s timeout
+      
+      const response = await fetch('http://localhost:8000/triage/predict', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+        signal: controller.signal
+      });
+      clearTimeout(timeoutId);
+      
+      if (response.ok) {
+        const data = await response.json();
+        // Map 1-5 urgency to priority (1: Critical, 2: High, 3: Medium, 4: Low, 5: Low)
+        if (data.urgency === 1) priority = 'Critical';
+        else if (data.urgency === 2) priority = 'High';
+        else if (data.urgency === 3) priority = 'Medium';
+        else priority = 'Low';
+        console.log(`[ML Triage] Success: Urgency ${data.urgency} -> ${priority}`);
+      } else {
+        throw new Error(`ML API returned ${response.status}`);
+      }
+    } catch (err) {
+      console.warn(`[ML Triage] Failed or timed out. Falling back to heuristic. Error: ${err.message}`);
+      if (confidence_score >= 80) priority = 'High';
+      else if (confidence_score < 50) priority = 'Low';
+    }
+  }
 
   // 4. Find duplicate within 50 meters that is NOT closed
   const existingTicket = await Ticket.findOne({

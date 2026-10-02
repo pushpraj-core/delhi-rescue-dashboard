@@ -42,9 +42,11 @@ if (process.env.NODE_ENV === 'production') {
 // Routes
 const authRoutes = require('./src/routes/auth');
 const teamRoutes = require('./src/routes/teams');
+const analyticsRoutes = require('./src/routes/analytics');
 app.use('/api/auth', authRoutes);
 app.use('/api/tickets', ticketRoutes);
 app.use('/api/teams', teamRoutes);
+app.use('/api/analytics', analyticsRoutes);
 
 // Centralized error handler without stack leaks
 app.use((err, req, res, next) => {

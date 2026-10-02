@@ -1,0 +1,13 @@
+fastapi
+uvicorn
+scikit-learn
+lightgbm
+h3
+shap
+pandas
+numpy
+pytest
+joblib
+matplotlib
+seaborn
+python-multipart

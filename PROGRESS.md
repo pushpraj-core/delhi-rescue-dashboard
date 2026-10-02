@@ -17,12 +17,12 @@
 - [x] T2.7 Tests for workflow, SLA, ward assignment, seed idempotency.
 
 ## Tier 3: ML Pipeline (mandatory)
-- [ ] Create /ml (Python, FastAPI, scikit-learn, LightGBM, h3, shap, pandas).
-- [ ] T3.1 ml/data/generate.py: Mumbai synthetic generator using config.
-- [ ] T3.2 Triage model: LightGBM predicting urgency 1-5. Save precision/recall/F1, confusion matrix, feature-importance chart.
-- [ ] T3.3 Hotspot forecast: H3 res 8/9 bins, expected incidents, report MAE and top-k hit rate. Endpoint GET /api/analytics/hotspot-forecast.
-- [ ] T3.4 FastAPI service: /triage/predict, /hotspots/forecast, /health; save model files, ml/model_card.md. Backend client with timeout and automatic fallback.
-- [ ] T3.5 make ml (or npm run ml:train): generates data, trains, evaluates, writes reports. pytest checks metrics exceed sane thresholds.
+- [x] Create /ml (Python, FastAPI, scikit-learn, LightGBM, h3, shap, pandas).
+- [x] T3.1 ml/data/generate.py: Mumbai synthetic generator using config.
+- [x] T3.2 Triage model: LightGBM predicting urgency 1-5. Save precision/recall/F1, confusion matrix, feature-importance chart.
+- [x] T3.3 Hotspot forecast: H3 res 8/9 bins, expected incidents, report MAE and top-k hit rate. Endpoint GET /api/analytics/hotspot-forecast.
+- [x] T3.4 FastAPI service: /triage/predict, /hotspots/forecast, /health; save model files, ml/model_card.md. Backend client with timeout and automatic fallback.
+- [x] T3.5 make ml (or npm run ml:train): generates data, trains, evaluates, writes reports. pytest checks metrics exceed sane thresholds.
 
 ## Tier 4: Citizen PWA + Dashboard Polish (if time allows)
 - [ ] T4.1 Dashboard: split AuthorityDashboard.tsx, Analytics (hotspot heatmap, SLA stats, rescue funnel, ward comparison, category breakdown, triage reasons, audit badge).
