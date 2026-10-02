@@ -4,6 +4,7 @@ import { useLocationSecure } from './useLocationSecure';
 import { initModel, captureSecurely } from './inference';
 import { encryptImagePayload } from '../../utils/crypto';
 import { useNavigate, Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 
 const QUICK_TAGS = [
   'Traffic Intersection',
@@ -17,6 +18,7 @@ export const CitizenCapture: React.FC = () => {
   const { startCamera, stopCamera, videoRef, streamRef, error: camError } = useSecureCamera();
   const { getSecureLocation } = useLocationSecure();
   const navigate = useNavigate();
+  const { t, i18n } = useTranslation();
   
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [modelReady, setModelReady] = useState(false);
@@ -34,6 +36,8 @@ export const CitizenCapture: React.FC = () => {
 
   const [trackingId, setTrackingId] = useState<string | null>(null);
   const [isOfflineSave, setIsOfflineSave] = useState(false);
+  const [consentGiven, setConsentGiven] = useState(false);
+  const [dHash, setDHash] = useState<string | null>(null);
 
   // 1: Capture, 2: Details/Confirm, 3: Success
   const [step, setStep] = useState<1 | 2 | 3>(1); 
@@ -59,9 +63,10 @@ export const CitizenCapture: React.FC = () => {
     try {
       const loc = await getSecureLocation();
       setLocation(loc);
-      const { blob, scene_confidence_score } = await captureSecurely(videoRef.current, canvasRef.current);
-      setCaptureBlob(blob);
-      setConfidenceScore(scene_confidence_score);
+      const captureResult = await captureSecurely(videoRef.current, canvasRef.current);
+      setCaptureBlob(captureResult.blob);
+      setConfidenceScore(captureResult.scene_confidence_score);
+      setDHash(captureResult.dHash || null);
       stopCamera();
       setStep(2);
     } catch (err: any) {
@@ -73,7 +78,7 @@ export const CitizenCapture: React.FC = () => {
 
   const handleRetake = async () => {
     setCaptureBlob(null); setLocation(null); setConfidenceScore(null); setError(null);
-    setSelectedCategory(''); setSelectedTags([]); setIsEmergency(false);
+    setSelectedCategory(''); setSelectedTags([]); setIsEmergency(false); setConsentGiven(false); setDHash(null);
     setStep(1);
     await startCamera();
   };
@@ -93,7 +98,8 @@ export const CitizenCapture: React.FC = () => {
       const payload = {
         longitude: location.longitude, latitude: location.latitude,
         encryptedPayload, confidence_score: confidenceScore,
-        user_category: selectedCategory, tags: selectedTags, isEmergency
+        user_category: selectedCategory, tags: selectedTags, isEmergency,
+        dHash: dHash || 'unknown'
       };
 
       try {
@@ -144,6 +150,15 @@ export const CitizenCapture: React.FC = () => {
           <div className="hidden sm:flex gap-7 items-center">
             <Link to="/report" className="text-sm font-medium text-[var(--ink)] border-b-2 border-[var(--saffron)] pb-[3px]">Report</Link>
             <Link to="/track" className="text-sm font-medium text-[var(--ink-soft)] hover:text-[var(--ink)] transition-colors">Track a report</Link>
+            <select
+              value={i18n.language}
+              onChange={(e) => i18n.changeLanguage(e.target.value)}
+              className="text-sm font-medium bg-transparent text-[var(--ink)] border border-[var(--line)] rounded-md px-2 py-1 outline-none cursor-pointer"
+            >
+              <option value="en">English</option>
+              <option value="hi">हिंदी</option>
+              <option value="mr">मराठी</option>
+            </select>
           </div>
         </div>
       </nav>
@@ -155,7 +170,7 @@ export const CitizenCapture: React.FC = () => {
             Step {step} of 3 · {step === 1 ? 'Capture' : step === 2 ? 'Details & Confirm' : 'Sent'}
           </div>
           <h1 className="font-display font-semibold text-[clamp(24px,3vw,30px)] tracking-tight mb-2">
-            {step === 3 ? 'Report submitted securely' : 'Report a child in need'}
+            {step === 3 ? 'Report submitted securely' : t('Report a child in need')}
           </h1>
           <p className="text-[14.5px] text-[var(--ink-soft)] max-w-[480px]">
             {step === 3 
@@ -279,12 +294,19 @@ export const CitizenCapture: React.FC = () => {
                   <span className="text-[13px] font-bold text-[var(--stamp)]">Flag as Immediate Physical Danger</span>
                 </label>
 
+                <label className="flex items-start gap-3 p-3 bg-[var(--paper)] border border-[var(--line)] rounded-xl cursor-pointer mt-2">
+                  <input type="checkbox" className="w-4 h-4 mt-0.5 accent-[var(--teal)]" checked={consentGiven} onChange={(e) => setConsentGiven(e.target.checked)} />
+                  <span className="text-[12px] text-[var(--ink-soft)] leading-relaxed">
+                    {t('I consent to sharing this location')}
+                  </span>
+                </label>
+
                 <div className="flex gap-3 mt-2">
                   <button onClick={handleRetake} disabled={isSubmitting} className="flex-1 py-3 text-[13px] font-semibold border border-[var(--line)] bg-white/50 rounded-xl hover:bg-white transition-colors">
-                    RETAKE
+                    {t('RETAKE')}
                   </button>
-                  <button onClick={handleSubmit} disabled={!selectedCategory || isSubmitting} className="flex-[2] py-3 text-[13px] font-semibold bg-[var(--ink)] text-white rounded-xl shadow-sm hover:shadow-md transition-all disabled:opacity-50 disabled:shadow-none flex items-center justify-center gap-2">
-                    {isSubmitting ? <span className="w-4 h-4 border-2 border-[var(--paper)] border-t-transparent rounded-full animate-spin"></span> : 'ENCRYPT & SEND'}
+                  <button onClick={handleSubmit} disabled={!selectedCategory || !consentGiven || isSubmitting} className="flex-[2] py-3 text-[13px] font-semibold bg-[var(--ink)] text-white rounded-xl shadow-sm hover:shadow-md transition-all disabled:opacity-50 disabled:shadow-none flex items-center justify-center gap-2">
+                    {isSubmitting ? <span className="w-4 h-4 border-2 border-[var(--paper)] border-t-transparent rounded-full animate-spin"></span> : t('ENCRYPT & SEND')}
                   </button>
                 </div>
               </div>

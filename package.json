@@ -5,5 +5,10 @@
     "dev": "npm run dev --prefix frontend & npm run dev --prefix backend",
     "ml:train": "cd ml && .\\venv\\Scripts\\activate && python data/generate.py && python models/train_triage.py && python models/train_hotspot.py",
     "ml:serve": "cd ml && .\\venv\\Scripts\\activate && uvicorn app:app --host 0.0.0.0 --port 8000 --reload"
+  },
+  "dependencies": {
+    "i18next": "^26.4.2",
+    "i18next-browser-languagedetector": "^8.2.1",
+    "react-i18next": "^17.0.15"
   }
 }
