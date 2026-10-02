@@ -117,6 +117,10 @@ if (process.env.NODE_ENV !== 'test') {
             console.log(`[SLA ESCALATION] ${result.modifiedCount} tickets breached SLA and escalated to Admin.`);
             // Emit real-time alert
             io.emit('sla_escalation', { count: result.modifiedCount });
+            
+            // Send external notification
+            const notificationService = require('./src/services/notificationService');
+            await notificationService.alertAdmin(result.modifiedCount);
           }
         } catch(e) {
           console.error('[SLA Escalation Error]:', e.message);

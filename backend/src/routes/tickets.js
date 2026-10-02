@@ -4,6 +4,7 @@ const { logAction } = require('../middleware/auditMiddleware');
 const Ticket = require('../models/Ticket');
 const AuditLog = require('../models/AuditLog');
 const { requireAuth, requireRole } = require('../middleware/authMiddleware');
+const notificationService = require('../services/notificationService');
 
 const router = express.Router();
 
@@ -190,8 +191,15 @@ router.patch('/:id/status', requireAuth, logAction('STATUS_UPDATE'), async (req,
     // Only persist team assignment when dispatching; clear it otherwise
     if (status === 'DISPATCHED' && assigned_team) {
       ticket.assigned_team = assigned_team;
+      // Notify the newly assigned team
+      notificationService.alertTeam(assigned_team, ticket).catch(e => console.error(e));
     } else if (status && status !== 'DISPATCHED' && status !== ticket.status) {
       ticket.assigned_team = null;
+    }
+
+    if (status === 'VERIFIED') {
+      // Forward to Childline simultaneously for verified children cases
+      notificationService.forwardToChildline(ticket).catch(e => console.error(e));
     }
 
     await ticket.save();

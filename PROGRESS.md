@@ -12,9 +12,9 @@
 - [x] T2.2 Mumbai ward assignment: Team model, suggest nearest available team, officer confirms. Add railwayJurisdiction flag.
 - [x] T2.3 SLA timers per priority with countdowns, breach flags, escalation to admin.
 - [x] T2.4 Socket.io with JWT-authenticated sockets.
-- [ ] T2.5 Notification service behind provider interface: console/mock default, FCM, Twilio/Gupshup (untested without keys). SIMULATED Childline/Khoya Paya mocks.
-- [ ] T2.6 Seed script: npm run seed for demo officers, 24 teams, 400+ synthetic tickets.
-- [ ] T2.7 Tests for workflow, SLA, ward assignment, seed idempotency.
+- [x] T2.5 Notification service behind provider interface: console/mock default, FCM, Twilio/Gupshup (untested without keys). SIMULATED Childline/Khoya Paya mocks.
+- [x] T2.6 Seed script: npm run seed for demo officers, 24 teams, 400+ synthetic tickets.
+- [x] T2.7 Tests for workflow, SLA, ward assignment, seed idempotency.
 
 ## Tier 3: ML Pipeline (mandatory)
 - [ ] Create /ml (Python, FastAPI, scikit-learn, LightGBM, h3, shap, pandas).
