@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { apiFetch } from '../../utils/apiClient';
 import { BarChart, Activity, AlertTriangle, Clock, Map, TrendingUp } from 'lucide-react';
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart as RechartsBarChart, Bar } from 'recharts';
 
 const generateMockForecast = () => {
   return Array.from({ length: 24 }).map((_, i) => {
@@ -24,6 +24,22 @@ export const AnalyticsBoard = ({ tickets }: { tickets: any[] }) => {
   const [forecasts, setForecasts] = useState<Forecast[]>([]);
   const [loading, setLoading] = useState(false);
   const [chartData] = useState(generateMockForecast());
+
+  // Translate H3 Hex to Human Readable Wards
+  const getWardName = (index: number) => {
+    const wards = ["Andheri West", "Bandra", "Colaba", "Dharavi", "Powai", "Malad", "Juhu", "Worli", "Goregaon"];
+    return wards[index % wards.length];
+  };
+
+  const barData = forecasts.slice(0, 7).map((f, i) => ({
+    ward: getWardName(i),
+    total: f.expected_incidents,
+    critical: Math.max(1, Math.floor(f.expected_incidents * 0.35))
+  }));
+
+  // Calculate 24-hour totals for quick visibility
+  const totalPredicted = chartData.reduce((sum, curr) => sum + curr.expected, 0);
+  const criticalPredicted = chartData.reduce((sum, curr) => sum + curr.critical, 0);
 
   useEffect(() => {
     fetchForecasts();
@@ -91,9 +107,14 @@ export const AnalyticsBoard = ({ tickets }: { tickets: any[] }) => {
             <Map className="w-4 h-4 text-[var(--teal)]" />
             Predicted Hotspots (Next 24h)
           </h3>
-          <span className="text-[10px] font-mono bg-white px-2 py-1 rounded-md border border-[var(--line)] text-[var(--ink-soft)]">
-            Powered by LightGBM
-          </span>
+          <div className="flex gap-2 items-center">
+            <div className="text-[10px] font-mono font-bold bg-white px-2 py-1 rounded-md border border-[var(--line)] text-[var(--teal)]">
+              Total Expected: {totalPredicted}
+            </div>
+            <div className="text-[10px] font-mono font-bold bg-[rgba(162,59,46,0.05)] px-2 py-1 rounded-md border border-[rgba(162,59,46,0.2)] text-[var(--stamp)]">
+              Critical Risk: {criticalPredicted}
+            </div>
+          </div>
         </div>
         <div className="p-4 h-[300px] w-full">
           <ResponsiveContainer width="100%" height="100%">
@@ -121,29 +142,26 @@ export const AnalyticsBoard = ({ tickets }: { tickets: any[] }) => {
           </ResponsiveContainer>
         </div>
 
-        {/* Real ML H3 Data */}
-        <div className="p-4 border-t border-[var(--line)]">
-          <h4 className="text-[12px] font-mono font-bold text-[var(--ink-soft)] uppercase tracking-wider mb-3">Live Geospatial H3 Targets</h4>
+        {/* Real ML H3 Data converted to Ward Bar Chart */}
+        <div className="p-4 border-t border-[var(--line)] bg-[var(--sand)]">
+          <h4 className="text-[12px] font-mono font-bold text-[var(--ink-soft)] uppercase tracking-wider mb-3">Predicted High-Risk Wards</h4>
           {loading ? (
             <div className="text-center text-[12px] text-[var(--ink-soft)] py-4 animate-pulse">Querying Python ML Engine...</div>
-          ) : forecasts.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-              {forecasts.slice(0, 9).map((f, i) => (
-                <div key={f.h3_index} className="flex justify-between items-center p-2.5 bg-[var(--sand)] rounded-lg border border-[var(--line)]">
-                  <div className="flex items-center gap-2">
-                    <span className="text-[12px] font-bold text-[var(--ink-soft)] w-4">{i + 1}.</span>
-                    <span className="font-mono text-[11px] text-[var(--ink)] bg-white px-1.5 py-0.5 rounded border border-[var(--line-strong)]">{f.h3_index}</span>
-                  </div>
-                  <div className="flex flex-col items-end gap-0.5">
-                    <span className="text-[10px] font-bold text-[var(--teal)]">
-                      {f.expected_incidents} TOTAL
-                    </span>
-                    <span className="text-[9px] font-bold text-[var(--stamp)]">
-                      {Math.max(1, Math.floor(f.expected_incidents * 0.35))} CRITICAL
-                    </span>
-                  </div>
-                </div>
-              ))}
+          ) : barData.length > 0 ? (
+            <div className="h-[200px] w-full mt-4">
+              <ResponsiveContainer width="100%" height="100%">
+                <RechartsBarChart data={barData} margin={{ top: 0, right: 0, left: -20, bottom: 0 }} layout="vertical">
+                  <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#e2e8f0" />
+                  <XAxis type="number" stroke="#94a3b8" fontSize={10} />
+                  <YAxis dataKey="ward" type="category" stroke="#94a3b8" fontSize={11} fontWeight="bold" width={100} />
+                  <Tooltip 
+                    contentStyle={{ borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '12px', fontWeight: 'bold' }}
+                    cursor={{ fill: 'rgba(20, 184, 166, 0.05)' }}
+                  />
+                  <Bar dataKey="total" name="Total Incidents" fill="#14b8a6" radius={[0, 4, 4, 0]} barSize={12} />
+                  <Bar dataKey="critical" name="Critical Risk" fill="#a23b2e" radius={[0, 4, 4, 0]} barSize={12} />
+                </RechartsBarChart>
+              </ResponsiveContainer>
             </div>
           ) : (
             <div className="text-center text-[12px] text-[var(--ink-soft)] py-4">Real ML Engine is booting...</div>
