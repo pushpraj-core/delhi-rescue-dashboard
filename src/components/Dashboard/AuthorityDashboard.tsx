@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Shield, Key, Eye, Lock, MapPin, AlertCircle, Map, LayoutDashboard, List, Activity, UserCheck, Users, MessageSquare, Send, FileText, History, CheckCircle, Clock } from 'lucide-react';
 import { GoogleLogin } from '@react-oauth/google';
-import type { EncryptedPayload } from '../../utils/crypto';
-import { decryptImagePayload } from '../../utils/crypto';
-import { demoPrivateKey } from '../../utils/demoKeys';
+import { decryptImagePayload, getOrCreateOfficerKeys } from '../../utils/crypto';
+import { apiFetch, setAuthToken } from '../../utils/apiClient';
 
 import { MapViewer } from './MapViewer';
 import { DispatchBoard } from './DispatchBoard';
@@ -41,7 +40,6 @@ export const AuthorityDashboard: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const [privateKeyInput, setPrivateKeyInput] = useState(JSON.stringify(demoPrivateKey, null, 2));
   const [isGoogleAuthenticated, setIsGoogleAuthenticated] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [googleAuthError, setGoogleAuthError] = useState<string | null>(null);
@@ -70,9 +68,7 @@ export const AuthorityDashboard: React.FC = () => {
   const fetchTickets = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/tickets');
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
+      const data = await apiFetch('/api/tickets');
       setTickets(data.tickets || []);
     } catch (err: any) {
       setError('Failed to fetch tickets. Make sure the backend is running.');
@@ -83,11 +79,8 @@ export const AuthorityDashboard: React.FC = () => {
 
   const fetchHotspots = async () => {
     try {
-      const res = await fetch('/api/tickets/hotspots');
-      const data = await res.json();
-      if (res.ok) {
-        setHotspots(data.hotspots || []);
-      }
+      const data = await apiFetch('/api/tickets/hotspots');
+      setHotspots(data.hotspots || []);
     } catch (e) {
       console.error('Failed to fetch hotspots', e);
     }
@@ -95,9 +88,8 @@ export const AuthorityDashboard: React.FC = () => {
 
   const fetchAuditLogs = async () => {
     try {
-      const res = await fetch('/api/tickets/audit-log');
-      const data = await res.json();
-      if (res.ok) setAuditLogs(data.logs || []);
+      const data = await apiFetch('/api/tickets/audit-log');
+      setAuditLogs(data.logs || []);
     } catch (err) {
       console.error(err);
     }
@@ -115,21 +107,40 @@ export const AuthorityDashboard: React.FC = () => {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Authentication failed');
       
-      // Store the token (optional for now, as we don't strictly protect the tickets endpoint yet)
-      localStorage.setItem('gov_token', data.token);
+      setAuthToken(data.token);
+      
+      // Upload public key
+      const keys = await getOrCreateOfficerKeys();
+      await apiFetch('/api/auth/keys/upload', {
+        method: 'POST',
+        body: JSON.stringify({ publicKeyJwk: keys.publicKey })
+      });
+
       setIsGoogleAuthenticated(true);
+      setIsAuthenticated(true);
     } catch (err: any) {
       setGoogleAuthError(err.message);
     }
   };
 
-  const handleLogin = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleDevBypass = async () => {
     try {
-      JSON.parse(privateKeyInput);
+      setGoogleAuthError(null);
+      const res = await fetch('/api/auth/dev-bypass', { method: 'POST' });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Dev bypass failed');
+      
+      setAuthToken(data.token);
+      const keys = await getOrCreateOfficerKeys();
+      await apiFetch('/api/auth/keys/upload', {
+        method: 'POST',
+        body: JSON.stringify({ publicKeyJwk: keys.publicKey })
+      });
+
+      setIsGoogleAuthenticated(true);
       setIsAuthenticated(true);
-    } catch (err) {
-      setError('Invalid Private Key JSON format');
+    } catch (err: any) {
+      setGoogleAuthError(err.message);
     }
   };
 
@@ -137,10 +148,10 @@ export const AuthorityDashboard: React.FC = () => {
     setDecryptingIds(prev => ({ ...prev, [ticket._id]: true }));
     setError(null);
     try {
-      // Log decryption securely for JJ Act compliance
-      await fetch(`/api/tickets/${ticket._id}/audit-decrypt`, { method: 'POST' });
+      await apiFetch(`/api/tickets/${ticket._id}/audit-decrypt`, { method: 'POST' });
 
-      const privateKeyJwk = JSON.parse(privateKeyInput);
+      const keys = await getOrCreateOfficerKeys();
+      const privateKeyJwk = keys.privateKey;
       const blobUrl = await decryptImagePayload(ticket.encryptedPayload, privateKeyJwk);
       setDecryptedImages(prev => ({ ...prev, [ticket._id]: blobUrl }));
     } catch (err: any) {
@@ -152,12 +163,10 @@ export const AuthorityDashboard: React.FC = () => {
 
   const checkKhoyaPaya = async (ticketId: string) => {
     try {
-      const res = await fetch('/api/tickets/verify-khoya-paya', {
+      const data = await apiFetch('/api/tickets/verify-khoya-paya', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ticketId })
       });
-      const data = await res.json();
       setKhoyaPayaResults(prev => ({ ...prev, [ticketId]: data }));
     } catch (err) {
       console.error('Failed to check database', err);
@@ -167,12 +176,10 @@ export const AuthorityDashboard: React.FC = () => {
   const handleStatusUpdate = async (id: string, newStatus: string) => {
     try {
       setTickets(prev => prev.map(t => t._id === id ? { ...t, status: newStatus } : t));
-      const res = await fetch(`/api/tickets/${id}/status`, {
+      await apiFetch(`/api/tickets/${id}/status`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: newStatus })
       });
-      if (!res.ok) throw new Error('Failed to update status');
       showToast(`Status updated to ${newStatus}`);
     } catch (err) {
       console.error(err);
@@ -184,12 +191,10 @@ export const AuthorityDashboard: React.FC = () => {
   const handleTeamAssign = async (id: string, team: string) => {
     try {
       setTickets(prev => prev.map(t => t._id === id ? { ...t, assigned_team: team || null } : t));
-      const res = await fetch(`/api/tickets/${id}/status`, {
+      await apiFetch(`/api/tickets/${id}/status`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: 'Field Team Dispatched', assigned_team: team || null })
       });
-      if (!res.ok) throw new Error('Failed to assign team');
       showToast(`Team assigned: ${team}`);
     } catch (err) {
       console.error(err);
@@ -201,12 +206,10 @@ export const AuthorityDashboard: React.FC = () => {
   const handlePriorityUpdate = async (id: string, priority: string) => {
     try {
       setTickets(prev => prev.map(t => t._id === id ? { ...t, priority } : t));
-      const res = await fetch(`/api/tickets/${id}/status`, {
+      await apiFetch(`/api/tickets/${id}/status`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ priority })
       });
-      if (!res.ok) throw new Error('Failed to update priority');
       showToast(`Priority updated to ${priority}`);
     } catch (err) {
       console.error(err);
@@ -532,19 +535,13 @@ export const AuthorityDashboard: React.FC = () => {
                             onKeyDown={async (e) => {
                               if (e.key === 'Enter' && noteInputs[ticket._id]?.trim()) {
                                 try {
-                                  const res = await fetch(`/api/tickets/${ticket._id}/notes`, {
+                                  const data = await apiFetch(`/api/tickets/${ticket._id}/notes`, {
                                     method: 'POST',
-                                    headers: { 'Content-Type': 'application/json' },
                                     body: JSON.stringify({ text: noteInputs[ticket._id] })
                                   });
-                                  if (res.ok) {
-                                    const data = await res.json();
-                                    setTickets(prev => prev.map(t => t._id === ticket._id ? { ...t, notes: data.notes } : t));
-                                    setNoteInputs(prev => ({ ...prev, [ticket._id]: '' }));
-                                    showToast('Note added securely');
-                                  } else {
-                                    showToast('Failed to add note', 'error');
-                                  }
+                                  setTickets(prev => prev.map(t => t._id === ticket._id ? { ...t, notes: data.notes } : t));
+                                  setNoteInputs(prev => ({ ...prev, [ticket._id]: '' }));
+                                  showToast('Note added securely');
                                 } catch (err) { 
                                   console.error(err);
                                   showToast('Failed to add note', 'error');
@@ -556,19 +553,13 @@ export const AuthorityDashboard: React.FC = () => {
                             onClick={async () => {
                               if (!noteInputs[ticket._id]?.trim()) return;
                               try {
-                                const res = await fetch(`/api/tickets/${ticket._id}/notes`, {
+                                const data = await apiFetch(`/api/tickets/${ticket._id}/notes`, {
                                   method: 'POST',
-                                  headers: { 'Content-Type': 'application/json' },
                                   body: JSON.stringify({ text: noteInputs[ticket._id] })
                                 });
-                                if (res.ok) {
-                                  const data = await res.json();
-                                  setTickets(prev => prev.map(t => t._id === ticket._id ? { ...t, notes: data.notes } : t));
-                                  setNoteInputs(prev => ({ ...prev, [ticket._id]: '' }));
-                                  showToast('Note added securely');
-                                } else {
-                                  showToast('Failed to add note', 'error');
-                                }
+                                setTickets(prev => prev.map(t => t._id === ticket._id ? { ...t, notes: data.notes } : t));
+                                setNoteInputs(prev => ({ ...prev, [ticket._id]: '' }));
+                                showToast('Note added securely');
                               } catch (err) { 
                                 console.error(err);
                                 showToast('Failed to add note', 'error');
@@ -592,6 +583,20 @@ export const AuthorityDashboard: React.FC = () => {
                 <div className="bg-[var(--paper-2)] px-4 py-3 border-b border-[var(--line-strong)] flex items-center gap-2">
                   <History className="w-4 h-4 text-[var(--ink)]" />
                   <h3 className="font-display font-bold text-[var(--ink)]">System Audit Log</h3>
+                  <button 
+                    onClick={async () => {
+                      try {
+                        const data = await apiFetch('/api/tickets/audit/verify');
+                        if (data.isIntact) showToast(`Ledger Intact! ${data.count} records verified.`);
+                        else showToast('WARNING: Ledger Integrity Compromised!', 'error');
+                      } catch (err) {
+                        showToast('Verification failed', 'error');
+                      }
+                    }}
+                    className="ml-auto px-3 py-1 bg-[var(--teal)]/10 text-[var(--teal)] border border-[var(--teal)]/30 rounded text-[11px] font-bold uppercase hover:bg-[var(--teal)] hover:text-white transition"
+                  >
+                    Verify Ledger Integrity
+                  </button>
                 </div>
                 <div className="overflow-x-auto">
                   <table className="w-full text-left border-collapse">

@@ -11,10 +11,13 @@ const auditLogSchema = new mongoose.Schema({
     ref: 'Ticket',
     required: true
   },
-  officerId: {
+  actorId: {
     type: String,
-    required: true,
-    default: 'Nodal_Officer_DL_01' // Hardcoded for demo/MVP
+    required: true
+  },
+  actorRole: {
+    type: String,
+    required: true
   },
   details: {
     type: mongoose.Schema.Types.Mixed
@@ -22,6 +25,14 @@ const auditLogSchema = new mongoose.Schema({
   timestamp: {
     type: Date,
     default: Date.now
+  },
+  previousHash: {
+    type: String,
+    required: true
+  },
+  hash: {
+    type: String,
+    required: true
   }
 });
 

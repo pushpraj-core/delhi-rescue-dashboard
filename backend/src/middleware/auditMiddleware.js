@@ -4,18 +4,30 @@ const logAction = (action) => {
   return async (req, res, next) => {
     try {
       const ticketId = req.params.id || (req.body && req.body.ticketId);
-      const officerId = (req.body && req.body.officerId) || req.headers['x-officer-id'] || 'Nodal_Officer_DL_01';
+      // Derive actor identity from verified JWT
+      const actorId = req.user ? req.user.email : 'system';
+      const actorRole = req.user ? req.user.role : 'system';
       
+      const crypto = require('crypto');
+      const lastLog = await AuditLog.findOne().sort({ _id: -1 }).select('hash');
+      const previousHash = lastLog ? lastLog.hash : '0000000000000000000000000000000000000000000000000000000000000000';
+
+      const dataToHash = `${action}|${ticketId}|${actorId}|${actorRole}|${previousHash}|${Date.now()}`;
+      const hash = crypto.createHash('sha256').update(dataToHash).digest('hex');
+
       const logEntry = new AuditLog({
         action,
         ticketId,
-        officerId,
+        actorId,
+        actorRole,
         details: {
           ip: req.ip,
           method: req.method,
           path: req.originalUrl,
           body: req.body
-        }
+        },
+        previousHash,
+        hash
       });
 
       await logEntry.save();
