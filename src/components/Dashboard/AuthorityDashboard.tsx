@@ -256,13 +256,26 @@ export const AuthorityDashboard: React.FC = () => {
           </p>
           {googleAuthError && <div className="mb-6 p-3 border border-[rgba(162,59,46,0.2)] bg-[rgba(162,59,46,0.05)] backdrop-blur text-[var(--stamp)] rounded-xl text-[13px]">{googleAuthError}</div>}
           
-          <div className="flex justify-center">
+          <div className="flex flex-col items-center gap-4">
             <GoogleLogin
               onSuccess={handleGoogleSuccess}
               onError={() => {
                 setGoogleAuthError('Google Login Failed. Please try again.');
               }}
             />
+            
+            <div className="flex items-center gap-2 w-full max-w-[250px]">
+              <div className="h-px bg-[var(--line-strong)] flex-1"></div>
+              <span className="text-[10px] font-mono text-[var(--ink-soft)] uppercase tracking-widest">or</span>
+              <div className="h-px bg-[var(--line-strong)] flex-1"></div>
+            </div>
+
+            <button 
+              onClick={handleDevBypass}
+              className="px-6 py-2 bg-[var(--ink)] text-white text-[12px] font-bold rounded hover:bg-[var(--ink-soft)] transition shadow-sm w-full max-w-[250px]"
+            >
+              Developer Login Bypass
+            </button>
           </div>
         </div>
       </div>
