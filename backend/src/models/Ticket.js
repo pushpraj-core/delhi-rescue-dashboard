@@ -29,7 +29,10 @@ const ticketSchema = new mongoose.Schema({
     default: 1
   },
   encryptedPayload: {
-    encryptedAesKey: { type: String, required: true },
+    wrappedKeys: [{
+      officerEmail: { type: String, required: true },
+      wrappedKey: { type: String, required: true }
+    }],
     iv: { type: String, required: true },
     encryptedData: { type: String, required: true }
   },

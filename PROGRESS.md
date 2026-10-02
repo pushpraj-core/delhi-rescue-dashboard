@@ -2,10 +2,10 @@
 
 ## Tier 1: Security Foundation (mandatory)
 - [x] T1.1 Fix known bugs: remove 30-day TTL on tickets, fix docker-compose env var name mismatch, port mismatch, Mongo auth and no public port, raise express.json limit to 8mb with validation, fail startup in production if JWT_SECRET or ALLOWED_DOMAINS is missing, fix /hotspots, re-enable duplicate detection.
-- [ ] T1.2 Auth and RBAC: User model, requireAuth and requireRole, helmet, CORS allowlist, express-rate-limit, centralized error handler, Tracking ID 10+ chars, safe alphabet. Frontend apiClient.ts, DEV_AUTH_BYPASS mode.
-- [ ] T1.3 Real key management: delete src/utils/demoKeys.ts, RSA-OAEP keypair in browser, Envelope encryption (AES-GCM), key rotation/revocation, strip EXIF/GPS, AES-GCM additional authenticated data.
-- [ ] T1.4 Tamper-evident audit log: seq, action, ticketId, actorId, actorRole, details, timestamp, prevHash, hash. Written only after action succeeds, append-only. GET /api/audit/verify returns {valid, brokenAtSeq}. Dashboard badge.
-- [ ] T1.5 Tests for Tier 1: Auth/RBAC matrix, key wrap/unwrap round trip, duplicate merge, audit chain and tamper detection. Make npm test real.
+- [x] T1.2 Auth and RBAC: User model, requireAuth and requireRole, helmet, CORS allowlist, express-rate-limit, centralized error handler, Tracking ID 10+ chars, safe alphabet. Frontend apiClient.ts, DEV_AUTH_BYPASS mode.
+- [x] T1.3 Real key management: delete src/utils/demoKeys.ts, RSA-OAEP keypair in browser, Envelope encryption (AES-GCM), key rotation/revocation, strip EXIF/GPS, AES-GCM additional authenticated data.
+- [x] T1.4 Tamper-evident audit log: seq, action, ticketId, actorId, actorRole, details, timestamp, prevHash, hash. Written only after action succeeds, append-only. GET /api/audit/verify returns {valid, brokenAtSeq}. Dashboard badge.
+- [x] T1.5 Tests for Tier 1: Auth/RBAC matrix, key wrap/unwrap round trip, duplicate merge, audit chain and tamper detection. Make npm test real.
 
 ## Tier 2: Workflow and Mumbai Operations (mandatory)
 - [ ] T2.1 State machine: REPORTED -> VERIFIED -> DISPATCHED -> RESCUED -> CWC_PRODUCED -> REHAB_FOLLOWUP -> CLOSED, REJECTED, DUPLICATE. Enforce server-side, audit each.

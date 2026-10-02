@@ -3,7 +3,6 @@ import { useSecureCamera } from './useSecureCamera';
 import { useLocationSecure } from './useLocationSecure';
 import { initModel, captureSecurely } from './inference';
 import { encryptImagePayload } from '../../utils/crypto';
-import { demoPublicKey } from '../../utils/demoKeys';
 import { useNavigate, Link } from 'react-router-dom';
 
 const QUICK_TAGS = [
@@ -88,7 +87,9 @@ export const CitizenCapture: React.FC = () => {
     setIsSubmitting(true); setError(null);
 
     try {
-      const encryptedPayload = await encryptImagePayload(captureBlob, demoPublicKey);
+      const resKeys = await fetch('/api/auth/keys/officers').then(r => r.json()).catch(() => ({ keys: [] }));
+      const publicKeys = resKeys.keys || [];
+      const encryptedPayload = await encryptImagePayload(captureBlob, publicKeys);
       const payload = {
         longitude: location.longitude, latitude: location.latitude,
         encryptedPayload, confidence_score: confidenceScore,

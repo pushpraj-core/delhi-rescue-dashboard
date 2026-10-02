@@ -1,9 +1,31 @@
 require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
+const helmet = require('helmet');
+const cors = require('cors');
+const rateLimit = require('express-rate-limit');
 const ticketRoutes = require('./src/routes/tickets');
 
 const app = express();
+app.use(helmet());
+
+const allowedDomains = process.env.ALLOWED_DOMAINS ? process.env.ALLOWED_DOMAINS.split(',') : [];
+app.use(cors({
+  origin: function (origin, callback) {
+    if (!origin || allowedDomains.includes(origin) || process.env.NODE_ENV !== 'production') {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  }
+}));
+
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 100
+});
+app.use(limiter);
+
 app.use(express.json({ limit: '8mb' }));
 
 if (process.env.NODE_ENV === 'production') {
@@ -21,6 +43,12 @@ if (process.env.NODE_ENV === 'production') {
 const authRoutes = require('./src/routes/auth');
 app.use('/api/auth', authRoutes);
 app.use('/api/tickets', ticketRoutes);
+
+// Centralized error handler without stack leaks
+app.use((err, req, res, next) => {
+  console.error('[Global Error]:', err.message);
+  res.status(500).json({ error: 'Internal Server Error' });
+});
 
 const PORT = process.env.PORT || 5000;
 // Connects to MongoDB Atlas Cloud Database in production

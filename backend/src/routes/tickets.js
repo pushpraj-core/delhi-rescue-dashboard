@@ -3,11 +3,12 @@ const { ingestTicket, getTickets } = require('../services/ticketService');
 const { logAction } = require('../middleware/auditMiddleware');
 const Ticket = require('../models/Ticket');
 const AuditLog = require('../models/AuditLog');
+const { requireAuth, requireRole } = require('../middleware/authMiddleware');
 
 const router = express.Router();
 
 // GET /api/tickets/audit-log - Retrieve audit trail for dashboard
-router.get('/audit-log', async (req, res) => {
+router.get('/audit-log', requireAuth, requireRole(['admin', 'officer']), async (req, res) => {
   try {
     const logs = await AuditLog.find().sort({ timestamp: -1 }).limit(200).lean();
     res.json({ logs });
@@ -17,8 +18,31 @@ router.get('/audit-log', async (req, res) => {
   }
 });
 
+// GET /api/tickets/audit/verify - Verify Tamper-evident Hash Chain
+router.get('/audit/verify', requireAuth, requireRole(['admin']), async (req, res) => {
+  try {
+    const logs = await AuditLog.find().sort({ timestamp: 1 });
+    let isIntact = true;
+    let brokenAt = null;
+    let previousHash = '0000000000000000000000000000000000000000000000000000000000000000';
+
+    for (const log of logs) {
+      if (log.previousHash !== previousHash) {
+        isIntact = false;
+        brokenAt = log._id;
+        break;
+      }
+      previousHash = log.hash;
+    }
+
+    res.json({ isIntact, brokenAt, count: logs.length });
+  } catch (error) {
+    res.status(500).json({ error: 'Verification failed' });
+  }
+});
+
 // GET /api/tickets/hotspots - Aggregation for Heatmap
-router.get('/hotspots', async (req, res) => {
+router.get('/hotspots', requireAuth, async (req, res) => {
   try {
     const tickets = await Ticket.find({}).select('location priority status');
     
@@ -49,7 +73,7 @@ router.get('/hotspots', async (req, res) => {
 });
 
 // GET /api/tickets - For Authority Dashboard
-router.get('/', async (req, res) => {
+router.get('/', requireAuth, async (req, res) => {
   try {
     const tickets = await getTickets();
     res.json({ tickets });
@@ -65,7 +89,7 @@ router.post('/', async (req, res) => {
     const { longitude, latitude, encryptedPayload, confidence_score, user_category, tags, isEmergency } = req.body;
 
     // Basic Validation
-    if (longitude == null || latitude == null || !encryptedPayload || !encryptedPayload.encryptedAesKey || confidence_score == null || !user_category) {
+    if (longitude == null || latitude == null || !encryptedPayload || !encryptedPayload.wrappedKeys || confidence_score == null || !user_category) {
       return res.status(400).json({ error: 'Missing required fields or invalid encrypted payload' });
     }
 
@@ -116,7 +140,7 @@ router.get('/track/:trackingId', async (req, res) => {
 });
 
 // PATCH /api/tickets/:id/status - Kanban Board Status Update
-router.patch('/:id/status', logAction('STATUS_UPDATE'), async (req, res) => {
+router.patch('/:id/status', requireAuth, logAction('STATUS_UPDATE'), async (req, res) => {
   try {
     const { status, assigned_team, priority } = req.body;
     const updateFields = {};
@@ -140,7 +164,7 @@ router.patch('/:id/status', logAction('STATUS_UPDATE'), async (req, res) => {
 });
 
 // POST /api/tickets/:id/notes - Add Internal Case Note
-router.post('/:id/notes', logAction('NOTE_ADDED'), async (req, res) => {
+router.post('/:id/notes', requireAuth, logAction('NOTE_ADDED'), async (req, res) => {
   try {
     const { text, author } = req.body;
     if (!text || !text.trim()) return res.status(400).json({ error: 'Note text is required' });
@@ -159,12 +183,12 @@ router.post('/:id/notes', logAction('NOTE_ADDED'), async (req, res) => {
 });
 
 // POST /api/tickets/:id/audit-decrypt - Log Evidence Decryption
-router.post('/:id/audit-decrypt', logAction('EVIDENCE_DECRYPTED'), async (req, res) => {
+router.post('/:id/audit-decrypt', requireAuth, logAction('EVIDENCE_DECRYPTED'), async (req, res) => {
   res.json({ success: true, message: 'Decryption logged securely.' });
 });
 
 // POST /api/verify-khoya-paya - Mock Facial Recognition Bridge
-router.post('/verify-khoya-paya', logAction('KHOYA_PAYA_CHECK'), async (req, res) => {
+router.post('/verify-khoya-paya', requireAuth, logAction('KHOYA_PAYA_CHECK'), async (req, res) => {
   try {
     // Simulate API delay for national database check
     await new Promise(resolve => setTimeout(resolve, 1500));

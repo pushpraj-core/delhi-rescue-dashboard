@@ -37,25 +37,14 @@ function base64ToArrayBuffer(base64: string): ArrayBuffer {
  */
 export async function encryptImagePayload(
   blob: Blob, 
-  publicKeyJwk: JsonWebKey
-): Promise<EncryptedPayload> {
-  // 1. Import the RSA Public Key
-  const rsaPubKey = await window.crypto.subtle.importKey(
-    'jwk',
-    publicKeyJwk,
-    { name: 'RSA-OAEP', hash: 'SHA-256' },
-    true,
-    ['encrypt']
-  );
-
-  // 2. Generate Ephemeral AES-GCM Key
+  publicKeys: { email: string; publicKeyJwk: JsonWebKey }[]
+): Promise<any> {
   const aesKey = await window.crypto.subtle.generateKey(
     { name: 'AES-GCM', length: 256 },
     true,
     ['encrypt', 'decrypt']
   );
 
-  // 3. Encrypt the Image Blob with AES-GCM
   const imageBuffer = await blob.arrayBuffer();
   const iv = window.crypto.getRandomValues(new Uint8Array(12));
   const encryptedImageBuffer = await window.crypto.subtle.encrypt(
@@ -64,17 +53,35 @@ export async function encryptImagePayload(
     imageBuffer
   );
 
-  // 4. Encrypt the AES Key with RSA Public Key
   const exportedAesKey = await window.crypto.subtle.exportKey('raw', aesKey);
-  const encryptedAesKeyBuffer = await window.crypto.subtle.encrypt(
-    { name: 'RSA-OAEP' },
-    rsaPubKey,
-    exportedAesKey
-  );
+  const wrappedKeys = [];
+  
+  for (const officer of publicKeys) {
+    if (!officer.publicKeyJwk) continue;
+    try {
+      const rsaPubKey = await window.crypto.subtle.importKey(
+        'jwk',
+        officer.publicKeyJwk,
+        { name: 'RSA-OAEP', hash: 'SHA-256' },
+        true,
+        ['encrypt']
+      );
+      const encryptedAesKeyBuffer = await window.crypto.subtle.encrypt(
+        { name: 'RSA-OAEP' },
+        rsaPubKey,
+        exportedAesKey
+      );
+      wrappedKeys.push({
+        officerEmail: officer.email,
+        wrappedKey: arrayBufferToBase64(encryptedAesKeyBuffer)
+      });
+    } catch (e) {
+      console.error('Failed to wrap key for', officer.email);
+    }
+  }
 
-  // 5. Convert everything to Base64 for database storage
   return {
-    encryptedAesKey: arrayBufferToBase64(encryptedAesKeyBuffer),
+    wrappedKeys,
     iv: arrayBufferToBase64(iv.buffer),
     encryptedData: arrayBufferToBase64(encryptedImageBuffer)
   };
@@ -130,10 +137,8 @@ export async function decryptImagePayload(
   return URL.createObjectURL(blob);
 }
 
-/**
- * Generates an RSA Keypair for demonstration purposes.
- * Returns JWK formatted keys so they can be easily stored as JSON.
- */
+import { get, set } from 'idb-keyval';
+
 export async function generateDemoKeypair(): Promise<{ publicKey: JsonWebKey, privateKey: JsonWebKey }> {
   const keyPair = await window.crypto.subtle.generateKey(
     {
@@ -150,4 +155,13 @@ export async function generateDemoKeypair(): Promise<{ publicKey: JsonWebKey, pr
   const privateKey = await window.crypto.subtle.exportKey('jwk', keyPair.privateKey);
 
   return { publicKey, privateKey };
+}
+
+export async function getOrCreateOfficerKeys(): Promise<{ publicKey: JsonWebKey, privateKey: JsonWebKey }> {
+  let keys = await get('officer_keys');
+  if (!keys) {
+    keys = await generateDemoKeypair();
+    await set('officer_keys', keys);
+  }
+  return keys;
 }
