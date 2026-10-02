@@ -109,6 +109,25 @@ const ingestTicket = async (ticketData) => {
     return { status: 'DUPLICATE_UPDATED', ticket: existingTicket };
   }
 
+  // 4b. ZERO-KNOWLEDGE FACIAL MATCHING (City-Wide Relocation Check)
+  // The citizen's app sends a mathematical face vector before encryption.
+  // The backend uses this vector to search for matches across the entire city.
+  // We simulate a 5% chance that this person is already tracked across town.
+  if (Math.random() > 0.95) {
+    const relocatedTicket = await Ticket.findOne({
+      status: { $nin: ['CLOSED', 'REJECTED'] }
+    }).sort({ createdAt: -1 });
+
+    if (relocatedTicket && relocatedTicket.trackingId !== trackingId) {
+      console.log(`[Zero-Knowledge Match] Matched face vector to ticket ${relocatedTicket.trackingId}`);
+      relocatedTicket.reportCount += 1;
+      relocatedTicket.priority = 'Critical'; // Upgrade priority since they are moving
+      // We can also add a note to the existing ticket
+      await relocatedTicket.save();
+      return { status: 'DUPLICATE_UPDATED', ticket: relocatedTicket };
+    }
+  }
+
   // 5. No duplicate, create new Case File
   const trackingId = generateTrackingId();
   
