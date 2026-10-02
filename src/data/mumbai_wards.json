@@ -1,1 +1,23 @@
-404: Not Found
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Mumbai District Boundary"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [72.77, 18.89],
+            [73.00, 18.89],
+            [73.00, 19.284],
+            [72.77, 19.284],
+            [72.77, 18.89]
+          ]
+        ]
+      }
+    }
+  ]
+}
