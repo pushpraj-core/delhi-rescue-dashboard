@@ -18,9 +18,9 @@ export default defineConfig({
       includeAssets: ['favicon.svg', 'icons.svg'],
 
       manifest: {
-        name: 'Delhi Child Rescue Dashboard',
-        short_name: 'DelhiRescue',
-        description: 'Secure, offline-first portal for reporting children in distress under the Juvenile Justice Act.',
+        name: 'Raksha MMR — Child Rescue Platform',
+        short_name: 'RakshaMMR',
+        description: 'Secure, offline-first portal for reporting children in distress across the Mumbai Metropolitan Region.',
         theme_color: '#2563eb',
         background_color: '#f8fafc',
         display: 'standalone',

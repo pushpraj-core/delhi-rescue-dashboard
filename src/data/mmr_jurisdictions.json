@@ -1,0 +1,65 @@
+{
+  "type": "FeatureCollection",
+  "metadata": {
+    "source": "APPROXIMATE boundaries created for hackathon demo. Replace with official MCGM/MMR ward GeoJSON for production.",
+    "license": "Synthetic approximation, not official data"
+  },
+  "features": [
+    {
+      "type": "Feature",
+      "properties": { "id": "MCGM", "name": "Mumbai (MCGM)" },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[72.77, 18.89], [72.98, 18.89], [72.98, 19.28], [72.77, 19.28], [72.77, 18.89]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "id": "THANE", "name": "Thane" },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[72.93, 19.15], [73.05, 19.15], [73.05, 19.30], [72.93, 19.30], [72.93, 19.15]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "id": "NAVI_MUMBAI", "name": "Navi Mumbai" },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[72.98, 18.92], [73.10, 18.92], [73.10, 19.12], [72.98, 19.12], [72.98, 18.92]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "id": "KALYAN_DOMBIVLI", "name": "Kalyan-Dombivli" },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[73.06, 19.18], [73.20, 19.18], [73.20, 19.30], [73.06, 19.30], [73.06, 19.18]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "id": "MIRA_BHAYANDAR", "name": "Mira-Bhayandar" },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[72.80, 19.27], [72.90, 19.27], [72.90, 19.35], [72.80, 19.35], [72.80, 19.27]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "id": "VASAI_VIRAR", "name": "Vasai-Virar" },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[72.75, 19.32], [72.92, 19.32], [72.92, 19.45], [72.75, 19.45], [72.75, 19.32]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "id": "PANVEL", "name": "Panvel" },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[73.08, 18.92], [73.20, 18.92], [73.20, 19.05], [73.08, 19.05], [73.08, 18.92]]]
+      }
+    }
+  ]
+}

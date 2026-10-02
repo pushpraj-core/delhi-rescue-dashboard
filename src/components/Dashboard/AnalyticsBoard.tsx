@@ -30,36 +30,32 @@ export const AnalyticsBoard = ({ tickets }: { tickets: any[] }) => {
     count: funnelCounts[status] || 0
   })).filter(item => item.count > 0);
 
+  // Jurisdiction / District breakdown
+  const jurisdictionCounts = tickets.reduce((acc: any, t) => {
+    const jur = t.district_id || 'Unknown';
+    acc[jur] = (acc[jur] || 0) + 1;
+    return acc;
+  }, {});
 
+  const jurisdictionData = Object.entries(jurisdictionCounts)
+    .map(([jurisdiction, total]) => ({ jurisdiction, total }))
+    .sort((a, b) => (b.total as number) - (a.total as number))
+    .slice(0, 10);
 
-  // Forecast Data (Hourly for Next 24h)
+  // Hourly pattern of past critical reports (raw histogram, NOT a prediction)
   const hourlyDistribution = Array(24).fill(0);
-  let totalCritical = 0;
   tickets.forEach(t => {
     if (t.priority === 'Critical' && t.createdAt) {
       const hour = new Date(t.createdAt).getHours();
       hourlyDistribution[hour] += 1;
-      totalCritical += 1;
     }
   });
 
-  const currentHour = new Date().getHours();
-  const dailyTotal = Math.max(5, Math.round(totalCritical / 7));
-  
-  const forecastData: any[] = [];
-  for (let i = 1; i <= 24; i++) {
-    const nextHour = (currentHour + i) % 24;
-    const ampm = nextHour >= 12 ? 'PM' : 'AM';
-    const displayHour = nextHour % 12 || 12;
-    
-    const prob = totalCritical > 0 ? (hourlyDistribution[nextHour] / totalCritical) : (1/24);
-    const predictedCount = parseFloat(((prob * dailyTotal) + 0.1).toFixed(1));
-    
-    forecastData.push({
-      time: `${displayHour} ${ampm}`,
-      predicted: predictedCount
-    });
-  }
+  const hourlyData = hourlyDistribution.map((count, hour) => {
+    const ampm = hour >= 12 ? 'PM' : 'AM';
+    const displayHour = hour % 12 || 12;
+    return { time: `${displayHour}${ampm}`, reports: count };
+  });
 
   const COLORS = ['#14b8a6', '#f59e0b', '#3b82f6', '#a23b2e', '#8b5cf6'];
 
@@ -141,17 +137,34 @@ export const AnalyticsBoard = ({ tickets }: { tickets: any[] }) => {
           </div>
         </div>
 
-        {/* Forecast Graph (Takes up full width now that Wards is removed) */}
-        <div className="bg-white rounded-xl border border-[var(--line)] shadow-sm p-4 md:col-span-2">
-          <h3 className="font-semibold text-[14px] text-[var(--ink)] mb-4">Forecast: Critical Cases (Next 24h)</h3>
+        {/* Incidents by Jurisdiction */}
+        <div className="bg-white rounded-xl border border-[var(--line)] shadow-sm p-4">
+          <h3 className="font-semibold text-[14px] text-[var(--ink)] mb-4">Incidents by Jurisdiction</h3>
           <div className="h-[250px] w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={forecastData} margin={{ top: 5, right: 20, left: -20, bottom: 5 }}>
+              <RechartsBarChart data={jurisdictionData} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                <XAxis dataKey="time" stroke="#94a3b8" fontSize={10} interval={2} />
+                <XAxis dataKey="jurisdiction" stroke="#94a3b8" fontSize={10} />
+                <YAxis stroke="#94a3b8" fontSize={10} />
+                <Tooltip cursor={{ fill: 'rgba(20, 184, 166, 0.05)' }} />
+                <Bar dataKey="total" fill="#f59e0b" radius={[4, 4, 0, 0]} />
+              </RechartsBarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* Hourly Pattern (honest, not a prediction) */}
+        <div className="bg-white rounded-xl border border-[var(--line)] shadow-sm p-4">
+          <h3 className="font-semibold text-[14px] text-[var(--ink)] mb-2">Hourly Pattern of Critical Reports</h3>
+          <p className="text-[10px] text-[var(--ink-soft)] mb-3 font-mono">Historical distribution — not a prediction</p>
+          <div className="h-[230px] w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={hourlyData} margin={{ top: 5, right: 20, left: -20, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                <XAxis dataKey="time" stroke="#94a3b8" fontSize={9} interval={2} />
                 <YAxis stroke="#94a3b8" fontSize={10} />
                 <Tooltip />
-                <Line type="monotone" dataKey="predicted" stroke="#3b82f6" strokeWidth={3} dot={false} activeDot={{ r: 6 }} name="Forecast (ML)" />
+                <Line type="monotone" dataKey="reports" stroke="#3b82f6" strokeWidth={2} dot={false} activeDot={{ r: 5 }} name="Critical reports" />
               </LineChart>
             </ResponsiveContainer>
           </div>

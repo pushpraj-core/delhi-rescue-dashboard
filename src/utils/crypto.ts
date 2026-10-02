@@ -89,12 +89,14 @@ export async function encryptImagePayload(
 
 /**
  * Decrypts an EncryptedPayload back into a Blob URL for safe viewing.
- * 1. Decrypts AES key using RSA Private Key.
- * 2. Decrypts Image Data using AES key.
+ * 1. Finds the wrappedKey matching the logged-in officer's email.
+ * 2. Decrypts AES key using RSA Private Key.
+ * 3. Decrypts Image Data using AES key.
  */
 export async function decryptImagePayload(
   payload: EncryptedPayload,
-  privateKeyJwk: JsonWebKey
+  privateKeyJwk: JsonWebKey,
+  officerEmail: string
 ): Promise<string> {
   // 1. Import RSA Private Key
   const rsaPrivKey = await window.crypto.subtle.importKey(
@@ -105,12 +107,29 @@ export async function decryptImagePayload(
     ['decrypt']
   );
 
-  // 2. Extract AES Key
-  const wrappedKeyStr = payload.wrappedKeys && payload.wrappedKeys.length > 0 
-    ? payload.wrappedKeys[0].wrappedKey 
-    : (payload as any).encryptedAesKey; // fallback for legacy data
+  // 2. Find the wrappedKey for this officer
+  let wrappedKeyStr: string | undefined;
+  
+  if (payload.wrappedKeys && payload.wrappedKeys.length > 0) {
+    // Try exact email match first
+    const match = payload.wrappedKeys.find(wk => wk.officerEmail === officerEmail);
+    if (match) {
+      wrappedKeyStr = match.wrappedKey;
+    } else {
+      // No match for this officer — do NOT silently fall back to another officer's key
+      const availableEmails = payload.wrappedKeys.map(wk => wk.officerEmail).join(', ');
+      throw new Error(
+        `No decryption key found for officer "${officerEmail}". ` +
+        `This evidence was encrypted for: [${availableEmails}]. ` +
+        `Request a case transfer to gain access.`
+      );
+    }
+  } else if ((payload as any).encryptedAesKey) {
+    // Legacy single-key format (pre-multi-officer)
+    wrappedKeyStr = (payload as any).encryptedAesKey;
+  }
     
-  if (!wrappedKeyStr) throw new Error('No wrapped key found');
+  if (!wrappedKeyStr) throw new Error('No wrapped key found in payload');
 
   const encryptedAesKeyBuffer = base64ToArrayBuffer(wrappedKeyStr);
   const decryptedAesKeyRaw = await window.crypto.subtle.decrypt(

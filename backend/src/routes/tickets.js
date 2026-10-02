@@ -245,12 +245,13 @@ router.patch('/:id/status', requireAuth, logAction('STATUS_UPDATE'), async (req,
 // POST /api/tickets/:id/notes - Add Internal Case Note
 router.post('/:id/notes', requireAuth, logAction('NOTE_ADDED'), async (req, res) => {
   try {
-    const { text, author } = req.body;
+    const { text } = req.body;
     if (!text || !text.trim()) return res.status(400).json({ error: 'Note text is required' });
 
+    const noteAuthor = req.user?.email || 'unknown_officer';
     const ticket = await Ticket.findByIdAndUpdate(
       req.params.id,
-      { $push: { notes: { text: text.trim(), author: author || 'Nodal_Officer_DL_01' } } },
+      { $push: { notes: { text: text.trim(), author: noteAuthor } } },
       { new: true }
     );
     if (!ticket) return res.status(404).json({ error: 'Ticket not found' });

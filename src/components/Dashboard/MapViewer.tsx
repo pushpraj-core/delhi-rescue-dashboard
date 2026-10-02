@@ -2,7 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { MapContainer, TileLayer, useMap, Marker, Popup, GeoJSON, Polygon, Tooltip as LeafletTooltip } from 'react-leaflet';
 import { apiFetch } from '../../utils/apiClient';
 import { cellToBoundary } from 'h3-js';
-import mumbaiGeoJSON from '../../data/mumbai_wards.json';
+import mmrGeoJSON from '../../data/mmr_jurisdictions.json';
+import jurisdictions from '../../../config/jurisdictions.json';
 import * as L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
@@ -71,18 +72,19 @@ export const MapViewer: React.FC<MapViewerProps> = ({ tickets }) => {
   useEffect(() => {
     const fetchForecasts = async () => {
       try {
+        const mlUrl = import.meta.env.VITE_ML_URL || '';
+        if (!mlUrl) return; // ML not configured, skip silently
         const data = await apiFetch('/api/analytics/hotspot-forecast');
         if (data.forecast) setForecasts(data.forecast);
       } catch (e) {
-        console.error('Failed to load forecast for map', e);
+        console.error('Hotspot forecast not available (ML service may not be running)', e);
       }
     };
     fetchForecasts();
   }, []);
 
-  // Mumbai coordinates
-  const mumbaiCenter: [number, number] = [19.0760, 72.8777];
-  const mapboxToken = import.meta.env.VITE_MAPBOX_TOKEN;
+  // MMR center from config
+  const mmrCenter: [number, number] = jurisdictions.region.mapCenter as [number, number];
   
   // Filter tickets based on selection
   const filteredTickets = tickets.filter(t => {
@@ -103,6 +105,9 @@ export const MapViewer: React.FC<MapViewerProps> = ({ tickets }) => {
     t.priority === 'High' || t.priority === 'Critical' || t.isEmergency ? 1 : 0.5 // intensity
   ]);
 
+  // Get categories from config for filter dropdown
+  const categories = jurisdictions.categories;
+
   return (
     <div className="w-full h-[500px] rounded-xl overflow-hidden border border-[var(--line)] shadow-sm relative z-0">
       
@@ -118,9 +123,9 @@ export const MapViewer: React.FC<MapViewerProps> = ({ tickets }) => {
             className="w-full text-[13px] p-2 rounded-lg border border-[var(--line)] bg-white/50 text-[var(--ink)] focus:outline-none focus:border-[var(--teal)] transition-colors"
           >
             <option value="All">All Categories</option>
-            <option value="Traffic Intersection Begging">Traffic Intersection Begging</option>
-            <option value="Hazardous Labor">Hazardous Labor</option>
-            <option value="Unattended Child">Unattended Child</option>
+            {categories.map(cat => (
+              <option key={cat} value={cat}>{cat}</option>
+            ))}
           </select>
         </div>
 
@@ -141,35 +146,44 @@ export const MapViewer: React.FC<MapViewerProps> = ({ tickets }) => {
       </div>
 
       <MapContainer 
-        center={mumbaiCenter} 
-        zoom={11} 
+        center={mmrCenter} 
+        zoom={jurisdictions.region.mapZoom} 
         className="w-full h-full z-0"
         scrollWheelZoom={false}
       >
+        {/* Free CARTO dark tiles — no API token required */}
         <TileLayer
-          url={`https://api.mapbox.com/styles/v1/mapbox/dark-v11/tiles/256/{z}/{x}/{y}@2x?access_token=${mapboxToken}`}
-          attribution='Map data &copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors, <a href="https://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, Imagery &copy; <a href="https://www.mapbox.com/">Mapbox</a>'
+          url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
         />
         
-        {/* Mumbai City Boundary Layer */}
+        {/* MMR Jurisdiction Boundary Layers */}
         <GeoJSON 
           // @ts-ignore
-          data={mumbaiGeoJSON} 
-          style={{ 
-            color: '#14b8a6', // teal color matching the UI
+          data={mmrGeoJSON} 
+          style={(feature) => ({
+            color: '#14b8a6',
             weight: 2, 
-            opacity: 0.6, 
+            opacity: 0.7, 
             fillColor: '#14b8a6', 
-            fillOpacity: 0.05 
-          }} 
+            fillOpacity: 0.05
+          })}
+          onEachFeature={(feature, layer) => {
+            if (feature.properties?.name) {
+              layer.bindTooltip(feature.properties.name, {
+                permanent: false,
+                direction: 'center',
+                className: 'font-mono text-[11px] font-bold'
+              });
+            }
+          }}
         />
         
         {/* Heatmap Layer */}
         <HeatmapLayer points={points} />
 
-        {/* Real ML H3 Predicted Hotspots Layer */}
+        {/* ML H3 Forecast Hotspots Layer (only if ML service running) */}
         {forecasts.map(f => {
-          // cellToBoundary returns [[lat, lng], [lat, lng], ...] when formatAsGeoJson is false (default)
           const boundary = cellToBoundary(f.h3_index);
           return (
             <Polygon 
@@ -179,16 +193,13 @@ export const MapViewer: React.FC<MapViewerProps> = ({ tickets }) => {
                 color: '#a23b2e', 
                 weight: 1,
                 fillColor: '#a23b2e',
-                fillOpacity: 0.15 // Very light intensity so map is visible!
+                fillOpacity: 0.15
               }}
             >
               <LeafletTooltip sticky className="font-mono text-[10px] font-bold border-[var(--line)]">
                 <div className="text-[12px] mb-1 font-display tracking-tight text-[var(--ink)]">Zone: {f.h3_index}</div>
                 <div className="flex justify-between gap-4 text-[var(--teal)]">
-                  <span>Total Expected:</span> <span>{f.expected_incidents}</span>
-                </div>
-                <div className="flex justify-between gap-4 text-[var(--stamp)] mt-0.5">
-                  <span>Critical Risk:</span> <span>{Math.max(1, Math.floor(f.expected_incidents * 0.35))}</span>
+                  <span>Expected Incidents:</span> <span>{f.expected_incidents}</span>
                 </div>
               </LeafletTooltip>
             </Polygon>
@@ -204,8 +215,8 @@ export const MapViewer: React.FC<MapViewerProps> = ({ tickets }) => {
                 <span className="text-[10px] font-mono text-[var(--ink-soft)] font-bold block mb-2 bg-white/50 border border-[var(--line)] px-1.5 py-0.5 rounded-md w-fit">ID: {t._id.slice(-6)}</span>
                 
                 <span className={`px-2 py-0.5 text-[10px] font-bold rounded-md uppercase tracking-wider border ${
-                  t.status.includes('Closed') ? 'bg-white/50 text-[var(--ink-soft)] border-[var(--line)]' 
-                  : t.status.includes('High') || t.isEmergency ? 'bg-[rgba(162,59,46,0.1)] text-[var(--stamp)] border-[rgba(162,59,46,0.5)]' 
+                  t.status === 'CLOSED' ? 'bg-white/50 text-[var(--ink-soft)] border-[var(--line)]' 
+                  : t.priority === 'Critical' || t.isEmergency ? 'bg-[rgba(162,59,46,0.1)] text-[var(--stamp)] border-[rgba(162,59,46,0.5)]' 
                   : 'bg-[var(--teal-light)] text-white border-[var(--teal)]'
                 }`}>
                   {t.status}
@@ -214,7 +225,7 @@ export const MapViewer: React.FC<MapViewerProps> = ({ tickets }) => {
                 {t.isEmergency && (
                   <p className="text-[var(--stamp)] font-bold text-[10px] uppercase tracking-widest mt-2 border border-[var(--stamp)] bg-[rgba(162,59,46,0.06)] px-1.5 py-0.5 text-center rounded-md">! Immediate Danger</p>
                 )}
-                <p className="text-[var(--ink-soft)] text-[11px] font-bold mt-2 pt-1 border-t border-[var(--line)]">District: {t.district_id}</p>
+                <p className="text-[var(--ink-soft)] text-[11px] font-bold mt-2 pt-1 border-t border-[var(--line)]">Jurisdiction: {t.district_id}</p>
               </div>
             </Popup>
           </Marker>

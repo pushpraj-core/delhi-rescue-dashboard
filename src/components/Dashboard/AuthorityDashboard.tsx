@@ -46,6 +46,7 @@ export const AuthorityDashboard: React.FC = () => {
 
   const [isGoogleAuthenticated, setIsGoogleAuthenticated] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [officerEmail, setOfficerEmail] = useState<string>('');
   const [googleAuthError, setGoogleAuthError] = useState<string | null>(null);
   const [decryptedImages, setDecryptedImages] = useState<Record<string, string>>({});
   const [decryptingIds, setDecryptingIds] = useState<Record<string, boolean>>({});
@@ -153,6 +154,7 @@ export const AuthorityDashboard: React.FC = () => {
       if (!res.ok) throw new Error(data.error || 'Authentication failed');
       
       setAuthToken(data.token);
+      if (data.user?.email) setOfficerEmail(data.user.email);
       
       // Upload public key
       const keys = await getOrCreateOfficerKeys();
@@ -176,6 +178,7 @@ export const AuthorityDashboard: React.FC = () => {
       if (!res.ok) throw new Error(data.error || 'Dev bypass failed');
       
       setAuthToken(data.token);
+      if (data.user?.email) setOfficerEmail(data.user.email);
       const keys = await getOrCreateOfficerKeys();
       await apiFetch('/api/auth/keys/upload', {
         method: 'POST',
@@ -197,7 +200,7 @@ export const AuthorityDashboard: React.FC = () => {
 
       const keys = await getOrCreateOfficerKeys();
       const privateKeyJwk = keys.privateKey;
-      const blobUrl = await decryptImagePayload(ticket.encryptedPayload, privateKeyJwk);
+      const blobUrl = await decryptImagePayload(ticket.encryptedPayload, privateKeyJwk, officerEmail);
       setDecryptedImages(prev => ({ ...prev, [ticket._id]: blobUrl }));
       fetchAuditLogs();
     } catch (err: any) {

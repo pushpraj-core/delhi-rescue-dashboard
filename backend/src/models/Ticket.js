@@ -46,7 +46,17 @@ const ticketSchema = new mongoose.Schema({
   },
   user_category: {
     type: String,
-    enum: ['Traffic Intersection Begging', 'Hazardous Labor', 'Unattended Child'],
+    enum: [
+      'Unattended Child',
+      'Child Labour',
+      'Trafficking Suspicion',
+      'Begging (Organized)',
+      'Begging (Independent)',
+      'Street Child',
+      'Abuse / Violence',
+      'Missing Child Sighted',
+      'Other'
+    ],
     required: true
   },
   tags: {
@@ -77,7 +87,7 @@ const ticketSchema = new mongoose.Schema({
   },
   notes: [{
     text: { type: String, required: true },
-    author: { type: String, default: 'Nodal_Officer_DL_01' },
+    author: { type: String, required: true },
     createdAt: { type: Date, default: Date.now }
   }],
   slaBreachAt: {

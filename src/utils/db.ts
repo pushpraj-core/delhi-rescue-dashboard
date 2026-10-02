@@ -18,13 +18,13 @@ export interface OfflineReport {
   };
 }
 
-const STORE_KEY = 'delhi_offline_reports';
+const STORE_KEY = 'raksha_offline_reports';
 
 /**
  * Saves a report to IndexedDB when the user is offline.
  */
 export async function saveOfflineReport(payload: OfflineReport['payload']): Promise<string> {
-  const id = `report_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+  const id = `report_${Date.now()}_${crypto.randomUUID().slice(0, 8)}`;
   const report: OfflineReport = {
     id,
     timestamp: Date.now(),

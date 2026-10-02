@@ -1,10 +1,11 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useSecureCamera } from './useSecureCamera';
-import { useLocationSecure } from './useLocationSecure';
+import { useLocationSecure, type JurisdictionMatch } from './useLocationSecure';
 import { initModel, captureSecurely } from './inference';
 import { encryptImagePayload } from '../../utils/crypto';
 import { useNavigate, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import jurisdictions from '../../../config/jurisdictions.json';
 
 const QUICK_TAGS = [
   'Traffic Intersection',
@@ -27,7 +28,7 @@ export const CitizenCapture: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   
   const [captureBlob, setCaptureBlob] = useState<Blob | null>(null);
-  const [location, setLocation] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [location, setLocation] = useState<{ latitude: number; longitude: number; jurisdiction: JurisdictionMatch | null } | null>(null);
   const [confidenceScore, setConfidenceScore] = useState<number | null>(null);
   
   const [selectedCategory, setSelectedCategory] = useState<string>('');
@@ -258,7 +259,7 @@ export const CitizenCapture: React.FC = () => {
                 <div>
                   <h3 className="font-semibold text-[13px] mb-2">Category *</h3>
                   <div className="flex flex-col gap-2">
-                    {['Traffic Intersection Begging', 'Hazardous Labor', 'Unattended Child'].map(cat => (
+                    {jurisdictions.categories.map(cat => (
                       <label 
                         key={cat} 
                         onClick={() => setSelectedCategory(cat)}

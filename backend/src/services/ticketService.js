@@ -1,26 +1,43 @@
-const booleanPointInPolygon = require('@turf/boolean-point-in-polygon').default;
-const { point } = require('@turf/helpers');
 const Ticket = require('../models/Ticket');
-const delhiDistricts = require('../data/delhi_districts.json');
-
+const jurisdictions = require('../../../config/jurisdictions.json');
 const crypto = require('crypto');
 
-const getDistrictForLocation = (longitude, latitude) => {
-  const pt = point([longitude, latitude]);
-  for (const feature of delhiDistricts.features) {
-    if (booleanPointInPolygon(pt, feature)) {
-      return feature.properties.district_id;
+/**
+ * Matches a [lng, lat] coordinate to an MMR jurisdiction using bounding box checks.
+ * Returns the jurisdiction ID (e.g. "MCGM", "THANE") or null if outside all jurisdictions.
+ */
+const getJurisdictionForLocation = (longitude, latitude) => {
+  for (const jur of jurisdictions.jurisdictions) {
+    if (
+      latitude >= jur.bounds.latMin &&
+      latitude <= jur.bounds.latMax &&
+      longitude >= jur.bounds.lngMin &&
+      longitude <= jur.bounds.lngMax
+    ) {
+      return jur.id;
     }
   }
-  return 'UNASSIGNED';
+  return null;
+};
+
+/**
+ * Checks if coordinates are within the MMR region at all.
+ */
+const isInMMR = (longitude, latitude) => {
+  const b = jurisdictions.region.bounds;
+  return (
+    latitude >= b.latMin &&
+    latitude <= b.latMax &&
+    longitude >= b.lngMin &&
+    longitude <= b.lngMax
+  );
 };
 
 const generateTrackingId = () => {
-  // Generate 12-char ID using safe alphabet (no confusing chars like 0, O, I, l)
   const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-  let id = '';
-  for (let i = 0; i < 12; i++) {
-    id += alphabet[Math.floor(Math.random() * alphabet.length)];
+  let id = 'RKS-';
+  for (let i = 0; i < 8; i++) {
+    id += alphabet[crypto.randomInt(alphabet.length)];
   }
   return id;
 };
@@ -30,65 +47,90 @@ const generateTrackingId = () => {
  * If duplicate, increments reportCount. Else creates new ticket.
  */
 const ingestTicket = async (ticketData) => {
-  const { longitude, latitude, encryptedPayload, confidence_score, user_category, tags, isEmergency } = ticketData;
+  const { longitude, latitude, encryptedPayload, confidence_score, user_category, tags, isEmergency, dHash } = ticketData;
 
-  // 1. Assign District
-  const district_id = getDistrictForLocation(longitude, latitude);
+  // 1. Validate location is within MMR
+  if (!isInMMR(longitude, latitude)) {
+    throw new Error('LOCATION_OUT_OF_REGION: Coordinates are outside the Mumbai Metropolitan Region.');
+  }
 
-  // 2. Time Window: Last 2 hours
+  // 2. Assign Jurisdiction
+  const district_id = getJurisdictionForLocation(longitude, latitude);
+  if (!district_id) {
+    throw new Error(
+      'LOCATION_UNRESOLVED: Coordinates are within MMR but could not be matched to a specific jurisdiction. ' +
+      'This may indicate a gap in boundary data. Report has been rejected — please try again or contact support.'
+    );
+  }
+
+  // 3. Validate category
+  const validCategories = jurisdictions.categories;
+  if (!validCategories.includes(user_category)) {
+    throw new Error(`INVALID_CATEGORY: "${user_category}" is not a valid category. Valid: ${validCategories.join(', ')}`);
+  }
+
+  // 4. Time Window: Last 2 hours
   const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000);
 
-  // 3. Triage Logic Setup
+  // 5. Triage Logic Setup
   let initialStatus = 'REPORTED';
   let priority = 'Medium';
   
   if (isEmergency) {
     priority = 'Critical';
   } else {
-    // Attempt ML prediction
-    try {
-      const now = new Date();
-      const payload = {
-        hour: now.getHours(),
-        day_of_week: now.getDay(),
-        month: now.getMonth() + 1,
-        lat: latitude,
-        lng: longitude,
-        ward: district_id,
-        category: user_category,
-        confidence_score: confidence_score
-      };
-      
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 1500); // 1.5s timeout
-      
-      const response = await fetch('http://localhost:8000/triage/predict', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-        signal: controller.signal
-      });
-      clearTimeout(timeoutId);
-      
-      if (response.ok) {
-        const data = await response.json();
-        // Map 1-5 urgency to priority (1: Critical, 2: High, 3: Medium, 4: Low, 5: Low)
-        if (data.urgency === 1) priority = 'Critical';
-        else if (data.urgency === 2) priority = 'High';
-        else if (data.urgency === 3) priority = 'Medium';
-        else priority = 'Low';
-        console.log(`[ML Triage] Success: Urgency ${data.urgency} -> ${priority}`);
-      } else {
-        throw new Error(`ML API returned ${response.status}`);
+    // Attempt ML prediction (optional, behind ML_TRIAGE_ENABLED)
+    const mlEnabled = process.env.ML_TRIAGE_ENABLED === 'true';
+    const mlUrl = process.env.ML_URL || 'http://localhost:8000';
+    
+    if (mlEnabled) {
+      try {
+        const now = new Date();
+        const payload = {
+          hour: now.getHours(),
+          day_of_week: now.getDay(),
+          month: now.getMonth() + 1,
+          lat: latitude,
+          lng: longitude,
+          ward: district_id,
+          category: user_category,
+          confidence_score: confidence_score
+        };
+        
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 1500);
+        
+        const response = await fetch(`${mlUrl}/triage/predict`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+          signal: controller.signal
+        });
+        clearTimeout(timeoutId);
+        
+        if (response.ok) {
+          const data = await response.json();
+          if (data.urgency === 1) priority = 'Critical';
+          else if (data.urgency === 2) priority = 'High';
+          else if (data.urgency === 3) priority = 'Medium';
+          else priority = 'Low';
+          console.log(`[ML Triage] Success: Urgency ${data.urgency} -> ${priority}`);
+        } else {
+          throw new Error(`ML API returned ${response.status}`);
+        }
+      } catch (err) {
+        console.warn(`[ML Triage] Failed or timed out. Falling back to heuristic. Error: ${err.message}`);
+        if (confidence_score >= 80) priority = 'High';
+        else if (confidence_score < 50) priority = 'Low';
       }
-    } catch (err) {
-      console.warn(`[ML Triage] Failed or timed out. Falling back to heuristic. Error: ${err.message}`);
+    } else {
+      // Heuristic fallback when ML is not enabled
       if (confidence_score >= 80) priority = 'High';
       else if (confidence_score < 50) priority = 'Low';
     }
   }
 
-  // 4. Find duplicate within 50 meters that is NOT closed
+  // 6. Find duplicate within 50 meters that is NOT closed
   const existingTicket = await Ticket.findOne({
     createdAt: { $gte: twoHoursAgo },
     status: { $nin: ['CLOSED', 'REJECTED'] },
@@ -98,7 +140,7 @@ const ingestTicket = async (ticketData) => {
           type: 'Point',
           coordinates: [longitude, latitude],
         },
-        $maxDistance: 50 // meters
+        $maxDistance: 50
       }
     }
   });
@@ -109,7 +151,7 @@ const ingestTicket = async (ticketData) => {
     return { status: 'DUPLICATE_UPDATED', ticket: existingTicket };
   }
 
-  // 5. No duplicate, create new Case File
+  // 7. No duplicate, create new Case File
   const trackingId = generateTrackingId();
   
   const slaHours = {
@@ -129,7 +171,7 @@ const ingestTicket = async (ticketData) => {
     trackingId,
     encryptedPayload,
     confidence_score,
-    dHash,
+    dHash: dHash || null,
     user_category,
     tags: tags || [],
     isEmergency: isEmergency || false,
@@ -146,12 +188,12 @@ const ingestTicket = async (ticketData) => {
 };
 
 const getTickets = async () => {
-  // Sort by newest first
   return await Ticket.find().sort({ createdAt: -1 });
 };
 
 module.exports = {
   ingestTicket,
-  getDistrictForLocation,
+  getJurisdictionForLocation,
+  isInMMR,
   getTickets
 };

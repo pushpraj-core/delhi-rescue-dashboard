@@ -1,0 +1,167 @@
+{
+  "region": {
+    "id": "MMR",
+    "name": "Mumbai Metropolitan Region",
+    "state": "Maharashtra",
+    "languages": ["mr", "hi", "en"],
+    "bounds": {
+      "latMin": 18.85,
+      "latMax": 19.45,
+      "lngMin": 72.70,
+      "lngMax": 73.20
+    },
+    "mapCenter": [19.10, 72.90],
+    "mapZoom": 10
+  },
+  "categories": [
+    "Unattended Child",
+    "Child Labour",
+    "Trafficking Suspicion",
+    "Begging (Organized)",
+    "Begging (Independent)",
+    "Street Child",
+    "Abuse / Violence",
+    "Missing Child Sighted",
+    "Other"
+  ],
+  "jurisdictions": [
+    {
+      "id": "MCGM",
+      "name": "Mumbai (MCGM)",
+      "state": "Maharashtra",
+      "mapCenter": [19.0760, 72.8777],
+      "mapZoom": 12,
+      "languages": ["mr", "hi", "en"],
+      "bounds": {
+        "latMin": 18.89,
+        "latMax": 19.28,
+        "lngMin": 72.77,
+        "lngMax": 72.98
+      },
+      "wards": ["A", "B", "C", "D", "E", "F/South", "F/North", "G/South", "G/North", "H/East", "H/West", "K/East", "K/West", "L", "M/East", "M/West", "N", "P/South", "P/North", "R/South", "R/Central", "R/North", "S", "T"],
+      "stations": [
+        {"name": "CSMT", "line": "Central", "lat": 18.9398, "lng": 72.8355, "grp": true},
+        {"name": "Dadar", "line": "Central/Western", "lat": 19.0178, "lng": 72.8423, "grp": true},
+        {"name": "Kurla", "line": "Central/Harbour", "lat": 19.0654, "lng": 72.8793, "grp": true},
+        {"name": "Ghatkopar", "line": "Central", "lat": 19.0858, "lng": 72.9081, "grp": true},
+        {"name": "Andheri", "line": "Western", "lat": 19.1197, "lng": 72.8468, "grp": true},
+        {"name": "Borivali", "line": "Western", "lat": 19.2295, "lng": 72.8568, "grp": true},
+        {"name": "Bandra Terminus", "line": "Western", "lat": 19.0544, "lng": 72.8399, "grp": true},
+        {"name": "LTT (Lokmanya Tilak)", "line": "Central", "lat": 19.0728, "lng": 72.8871, "grp": true}
+      ],
+      "note": "APPROXIMATE boundaries. Replace with official MCGM ward GeoJSON for production."
+    },
+    {
+      "id": "THANE",
+      "name": "Thane",
+      "state": "Maharashtra",
+      "mapCenter": [19.2183, 72.9781],
+      "mapZoom": 13,
+      "languages": ["mr", "hi", "en"],
+      "bounds": {
+        "latMin": 19.15,
+        "latMax": 19.30,
+        "lngMin": 72.93,
+        "lngMax": 73.05
+      },
+      "wards": [],
+      "stations": [
+        {"name": "Thane", "line": "Central", "lat": 19.1860, "lng": 72.9757, "grp": true}
+      ],
+      "note": "APPROXIMATE boundaries."
+    },
+    {
+      "id": "NAVI_MUMBAI",
+      "name": "Navi Mumbai",
+      "state": "Maharashtra",
+      "mapCenter": [19.0330, 73.0297],
+      "mapZoom": 12,
+      "languages": ["mr", "hi", "en"],
+      "bounds": {
+        "latMin": 18.92,
+        "latMax": 19.12,
+        "lngMin": 72.98,
+        "lngMax": 73.10
+      },
+      "wards": [],
+      "stations": [
+        {"name": "Panvel", "line": "Harbour", "lat": 18.9937, "lng": 73.1190, "grp": true}
+      ],
+      "note": "APPROXIMATE boundaries."
+    },
+    {
+      "id": "KALYAN_DOMBIVLI",
+      "name": "Kalyan-Dombivli",
+      "state": "Maharashtra",
+      "mapCenter": [19.2350, 73.1305],
+      "mapZoom": 13,
+      "languages": ["mr", "hi", "en"],
+      "bounds": {
+        "latMin": 19.18,
+        "latMax": 19.30,
+        "lngMin": 73.06,
+        "lngMax": 73.20
+      },
+      "wards": [],
+      "stations": [
+        {"name": "Kalyan", "line": "Central", "lat": 19.2437, "lng": 73.1355, "grp": true}
+      ],
+      "note": "APPROXIMATE boundaries."
+    },
+    {
+      "id": "MIRA_BHAYANDAR",
+      "name": "Mira-Bhayandar",
+      "state": "Maharashtra",
+      "mapCenter": [19.2952, 72.8544],
+      "mapZoom": 13,
+      "languages": ["mr", "hi", "en"],
+      "bounds": {
+        "latMin": 19.27,
+        "latMax": 19.35,
+        "lngMin": 72.80,
+        "lngMax": 72.90
+      },
+      "wards": [],
+      "stations": [],
+      "note": "APPROXIMATE boundaries."
+    },
+    {
+      "id": "VASAI_VIRAR",
+      "name": "Vasai-Virar",
+      "state": "Maharashtra",
+      "mapCenter": [19.3919, 72.8397],
+      "mapZoom": 12,
+      "languages": ["mr", "hi", "en"],
+      "bounds": {
+        "latMin": 19.32,
+        "latMax": 19.45,
+        "lngMin": 72.75,
+        "lngMax": 72.92
+      },
+      "wards": [],
+      "stations": [
+        {"name": "Vasai Road", "line": "Western", "lat": 19.3607, "lng": 72.8282, "grp": true}
+      ],
+      "note": "APPROXIMATE boundaries."
+    },
+    {
+      "id": "PANVEL",
+      "name": "Panvel",
+      "state": "Maharashtra",
+      "mapCenter": [18.9894, 73.1175],
+      "mapZoom": 13,
+      "languages": ["mr", "hi", "en"],
+      "bounds": {
+        "latMin": 18.92,
+        "latMax": 19.05,
+        "lngMin": 73.08,
+        "lngMax": 73.20
+      },
+      "wards": [],
+      "stations": [
+        {"name": "Panvel", "line": "Harbour", "lat": 18.9937, "lng": 73.1190, "grp": true}
+      ],
+      "note": "APPROXIMATE boundaries."
+    }
+  ]
+}
