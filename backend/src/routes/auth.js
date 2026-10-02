@@ -30,13 +30,14 @@ router.post('/google', async (req, res) => {
     // Optional: Restrict to specific domains
     const allowedDomains = process.env.ALLOWED_DOMAINS ? process.env.ALLOWED_DOMAINS.split(',') : [];
     
-    if (allowedDomains.length > 0) {
-      const emailDomain = email.split('@')[1];
-      if (!allowedDomains.includes(emailDomain)) {
-        console.warn(`Blocked unauthorized domain access attempt: ${email}`);
-        return res.status(403).json({ error: 'Access denied: Unauthorized email domain' });
-      }
-    }
+    // DISABLED DOMAIN CHECK FOR HACKATHON DEMO:
+    // if (allowedDomains.length > 0) {
+    //   const emailDomain = email.split('@')[1];
+    //   if (!allowedDomains.includes(emailDomain)) {
+    //     console.warn(`Blocked unauthorized domain access attempt: ${email}`);
+    //     return res.status(403).json({ error: 'Access denied: Unauthorized email domain' });
+    //   }
+    // }
 
     // Sync user with database
     const User = require('../models/User');
