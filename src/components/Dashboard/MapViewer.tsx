@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { MapContainer, TileLayer, useMap, Marker, Popup, GeoJSON } from 'react-leaflet';
+import { MapContainer, TileLayer, useMap, Marker, Popup, GeoJSON, Polygon, Tooltip as LeafletTooltip } from 'react-leaflet';
+import { apiFetch } from '../../utils/apiClient';
+import { cellToBoundary } from 'h3-js';
 import mumbaiGeoJSON from '../../data/mumbai_wards.json';
 import * as L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -64,6 +66,19 @@ const HeatmapLayer = ({ points }: { points: [number, number, number][] }) => {
 export const MapViewer: React.FC<MapViewerProps> = ({ tickets }) => {
   const [filterCategory, setFilterCategory] = useState<string>('All');
   const [filterPriority, setFilterPriority] = useState<string>('All');
+  const [forecasts, setForecasts] = useState<any[]>([]);
+
+  useEffect(() => {
+    const fetchForecasts = async () => {
+      try {
+        const data = await apiFetch('/api/analytics/hotspot-forecast');
+        if (data.forecast) setForecasts(data.forecast);
+      } catch (e) {
+        console.error('Failed to load forecast for map', e);
+      }
+    };
+    fetchForecasts();
+  }, []);
 
   // Mumbai coordinates
   const mumbaiCenter: [number, number] = [19.0760, 72.8777];
@@ -151,6 +166,29 @@ export const MapViewer: React.FC<MapViewerProps> = ({ tickets }) => {
         
         {/* Heatmap Layer */}
         <HeatmapLayer points={points} />
+
+        {/* Real ML H3 Predicted Hotspots Layer */}
+        {forecasts.map(f => {
+          // cellToBoundary returns [[lat, lng], [lat, lng], ...] when formatAsGeoJson is false (default)
+          const boundary = cellToBoundary(f.h3_index);
+          return (
+            <Polygon 
+              key={f.h3_index} 
+              positions={boundary as [number, number][]}
+              pathOptions={{ 
+                color: '#a23b2e', 
+                weight: 1,
+                fillColor: '#a23b2e',
+                fillOpacity: 0.15 // Very light intensity so map is visible!
+              }}
+            >
+              <LeafletTooltip sticky className="font-mono text-[10px] font-bold border-[var(--stamp)] text-[var(--stamp)]">
+                Zone: {f.h3_index}<br/>
+                Predicted Alerts: {f.expected_incidents}
+              </LeafletTooltip>
+            </Polygon>
+          );
+        })}
 
         {/* Interactive Clickable Markers */}
         {filteredTickets.map(t => (
