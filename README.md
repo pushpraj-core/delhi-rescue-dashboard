@@ -1,78 +1,56 @@
-# Raksha: Secure Child Rescue & Tracking System
+# Raksha Mumbai 🛡️
+**Juvenile Justice Act Compliant Child Rescue Platform**
 
-## Overview
-Raksha is an end-to-end encrypted, AI-powered platform designed to assist the Delhi Government and allied child protection agencies in identifying, tracking, and rescuing children subjected to hazardous labor, trafficking, and public begging. 
+A secure, offline-first Progressive Web App (PWA) and ML-powered Nodal Dispatch system designed to protect vulnerable children. Built specifically to handle sensitive rescue operations in Mumbai without compromising privacy or leaking critical data.
 
-The system aligns with the Juvenile Justice (JJ) Act and recent Delhi state schemes targeting the rehabilitation of child beggars by providing a secure bridge between anonymous citizen reporting and official government dispatch workflows.
+## Key Features
 
-## Problem Statement
-Despite dedicated government schemes, authorities struggle to efficiently locate and rescue victims at traffic intersections and public spaces. Citizens frequently witness these situations but hesitate to report them due to privacy concerns and the lack of a secure platform. Furthermore, when reports are made, agencies lack a centralized, automated system to verify evidence, triage emergencies, and quickly dispatch field rescue teams while maintaining a legal audit trail.
+1. **Zero-Leak Citizen App (PWA)**:
+   - Client-side TensorFlow.js automatically blurs children's faces *before* the image is saved or transmitted.
+   - Works fully offline using IndexedDB with exponential backoff syncing.
+   - Tamper-evident perceptual hashes (dHash) prevent deepfakes.
 
-## Key Innovations
+2. **Military-Grade Security (Tier 1)**:
+   - **Envelope Encryption**: AES-GCM payloads wrapped in RSA-OAEP keys. Data cannot be read if the database is breached.
+   - **Immutable Audit Log**: Cryptographically chained SHA-256 ledger tracks every single view, action, and decryption. 
 
-*   **Zero-Knowledge Architecture (E2EE):** To protect the identities of vulnerable minors, the platform utilizes Web Crypto API (RSA-OAEP & AES-GCM). Photographic evidence is encrypted on the citizen's device before transmission. The backend server acts only as a blind relay; decryption occurs exclusively on the authorized officer's local machine via their private key.
-*   **On-Device Edge AI:** Integrated TensorFlow.js (BlazeFace model) runs directly in the citizen's browser. It acts as a primary filter to ensure a human face is present in the captured media before a report is permitted, significantly reducing spam and false positives without compromising privacy.
-*   **Immutable Audit Logging:** Every action taken by a government official (e.g., updating case status, assigning teams, adding internal notes) is permanently logged to ensure a strict legal chain of custody and accountability in accordance with child protection policies.
-*   **Khoya Paya Integration:** The dashboard features an automated cross-referencing system to match incoming reports against existing missing child databases.
-*   **Automated PDF Generation:** Generates real-time, downloadable statistical reports for administrative review and record-keeping.
+3. **Intelligent Dispatch (Tier 2 & 3)**:
+   - **ML Triage**: LightGBM model predicts case urgency (Critical 1 to Low 5) to auto-prioritize dispatch.
+   - **Hotspot Forecasting**: Uses H3 geographic hexagons and historical rolling means to predict high-risk areas 24h in advance.
+   - **Strict SLAs**: Automated timers (1h, 4h, 12h, 24h) escalate breached cases to administrators.
+   - **Real-time**: Socket.io ensures the Authority board updates instantly without polling.
 
-## Technical Stack
+4. **Multi-lingual Support (Tier 4)**:
+   - Full i18n support for English, Hindi, and Marathi in the citizen capture app.
 
-**Frontend**
-*   React (Vite)
-*   Tailwind CSS
-*   TensorFlow.js (BlazeFace)
-*   Leaflet & React-Leaflet
-*   React-PDF
+## Tech Stack
+- **Frontend**: React, Vite, TailwindCSS, TensorFlow.js (BlazeFace), i18next
+- **Backend**: Node.js, Express, MongoDB (Mongoose), Socket.io, WebCrypto API
+- **Machine Learning**: Python, FastAPI, LightGBM, scikit-learn, Uber H3
+- **DevOps**: Docker, GitHub Actions CI
 
-**Backend & Database**
-*   Node.js & Express.js
-*   MongoDB & Mongoose
-*   JSON Web Tokens (JWT) & Google Auth Library
-*   Turf.js (Geospatial Analysis)
-
-**Infrastructure**
-*   Docker & Docker Compose
-*   Nginx
+## Architecture & Threat Model
+Please see the `/docs` directory for deep-dives into our design philosophy:
+- `ARCHITECTURE.md`
+- `THREAT_MODEL.md`
+- `DECISIONS.md`
 
 ## Getting Started
 
-### Prerequisites
-*   Node.js (v18 or higher)
-*   MongoDB (Local or Atlas URL)
-*   Docker Desktop (Optional, for containerized deployment)
-
-### Containerized Deployment (Recommended)
-The application is fully containerized and production-ready via Docker Compose.
-
-1. Ensure Docker Desktop is running.
-2. Execute the build command from the root directory:
+1. **Install Dependencies**:
    ```bash
-   docker-compose up -d --build
-   ```
-3. The application will be accessible at `http://localhost`.
-
-### Local Development Setup
-If you prefer to run the development servers directly:
-
-1. **Install Dependencies:**
-   ```bash
-   # Install frontend dependencies
    npm install
-   
-   # Install backend dependencies
    cd backend && npm install
+   cd ../ml && python -m venv venv && source venv/bin/activate && pip install -r requirements.txt
    ```
 
-2. **Start the Development Servers:**
+2. **Generate Mumbai Synthetic Data & Train ML**:
    ```bash
-   # Start backend (from the /backend directory)
-   npm run dev
-
-   # Start frontend (from the root directory)
-   npm run dev
+   npm run ml:train
    ```
-3. Access the frontend at `http://localhost:5173`.
 
-## Architecture Note
-For demonstration and local development purposes, the RSA Private Key required for decryption is pre-filled in the Authority Login interface. In a production government deployment, this key would be physically distributed to nodal officers (e.g., via hardware security keys) or securely cached within the browser's IndexedDB.
+3. **Start the Dev Servers**:
+   ```bash
+   npm run dev
+   npm run ml:serve
+   ```

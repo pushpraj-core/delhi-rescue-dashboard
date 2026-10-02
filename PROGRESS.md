@@ -25,15 +25,15 @@
 - [x] T3.5 make ml (or npm run ml:train): generates data, trains, evaluates, writes reports. pytest checks metrics exceed sane thresholds.
 
 ## Tier 4: Citizen PWA + Dashboard Polish (if time allows)
-- [ ] T4.1 Dashboard: split AuthorityDashboard.tsx, Analytics (hotspot heatmap, SLA stats, rescue funnel, ward comparison, category breakdown, triage reasons, audit badge).
-- [ ] T4.2 Citizen app: composite on-device quality score, retry-capture UX, on-device dHash, explicit plain-language consent step.
-- [ ] T4.3 Offline queue hardening: exponential backoff, max retries, idempotency key, real PWA.
-- [ ] T4.4 i18n with react-i18next: Marathi, Hindi, English.
-- [ ] T4.5 Field-team mobile view and PDF/CSV export with audit hash footer.
-- [ ] T4.6 GitHub Actions CI: lint, typecheck, tests, build, npm audit, gitleaks.
+- [x] T4.1 Dashboard: split AuthorityDashboard.tsx, Analytics (hotspot heatmap, SLA stats, rescue funnel, ward comparison, category breakdown, triage reasons, audit badge).
+- [x] T4.2 Citizen app: composite on-device quality score, retry-capture UX, on-device dHash, explicit plain-language consent step.
+- [x] T4.3 Offline queue hardening: exponential backoff, max retries, idempotency key, real PWA.
+- [x] T4.4 i18n with react-i18next: Marathi, Hindi, English.
+- [x] T4.5 Field-team mobile view and PDF/CSV export with audit hash footer.
+- [x] T4.6 GitHub Actions CI: lint, typecheck, tests, build, npm audit, gitleaks.
 
 ## Documentation
-- [ ] README.md rewrite
-- [ ] docs/ARCHITECTURE.md, docs/THREAT_MODEL.md
-- [ ] docs/DECISIONS.md, docs/DEMO_SCRIPT.md, ml/model_card.md
-- [ ] docs/SETUP_LATER.md, .env.example
+- [x] README.md rewrite
+- [x] docs/ARCHITECTURE.md, docs/THREAT_MODEL.md
+- [x] docs/DECISIONS.md, docs/DEMO_SCRIPT.md, ml/model_card.md
+- [x] docs/SETUP_LATER.md, .env.example

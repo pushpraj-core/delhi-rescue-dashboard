@@ -6,6 +6,7 @@ import { apiFetch, setAuthToken } from '../../utils/apiClient';
 
 import { MapViewer } from './MapViewer';
 import { DispatchBoard } from './DispatchBoard';
+import { AnalyticsBoard } from './AnalyticsBoard';
 import { ReportGenerator } from './ReportGenerator';
 
 interface Ticket {
@@ -55,7 +56,7 @@ export const AuthorityDashboard: React.FC = () => {
     setTimeout(() => setToast(null), 3000);
   };
   
-  const [activeTab, setActiveTab] = useState<'map' | 'board' | 'list' | 'audit'>('board');
+  const [activeTab, setActiveTab] = useState<'map' | 'board' | 'list' | 'audit' | 'analytics'>('board');
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -389,6 +390,12 @@ export const AuthorityDashboard: React.FC = () => {
           >
             <History className="w-4 h-4" /> Audit Trail
           </button>
+          <button
+            onClick={() => setActiveTab('analytics')}
+            className={`px-5 py-3 font-semibold text-[14px] flex items-center gap-2 border-b-[2px] transition-colors ${activeTab === 'analytics' ? 'border-[var(--teal)] text-[var(--ink)]' : 'border-transparent text-[var(--ink-soft)] hover:text-[var(--ink)] hover:bg-[var(--line)]'}`}
+          >
+            <Activity className="w-4 h-4" /> Analytics
+          </button>
         </div>
 
         {/* Main Content Area */}
@@ -628,6 +635,23 @@ export const AuthorityDashboard: React.FC = () => {
                   >
                     Verify Ledger Integrity
                   </button>
+                  <button
+                    onClick={() => {
+                      const csvContent = "data:text/csv;charset=utf-8," 
+                        + "Timestamp,Action,Officer ID,Ticket Ref,IP Address,Hash\n"
+                        + auditLogs.map(l => `${new Date(l.timestamp).toISOString()},${l.action},${l.officerId},${l.ticketId},${l.details?.ip},${l.hash}`).join("\n");
+                      const encodedUri = encodeURI(csvContent);
+                      const link = document.createElement("a");
+                      link.setAttribute("href", encodedUri);
+                      link.setAttribute("download", `audit_log_${new Date().toISOString()}.csv`);
+                      document.body.appendChild(link);
+                      link.click();
+                      document.body.removeChild(link);
+                    }}
+                    className="ml-2 px-3 py-1 bg-white border border-[var(--line-strong)] text-[var(--ink)] rounded text-[11px] font-bold uppercase hover:bg-[var(--line)] transition"
+                  >
+                    Export CSV
+                  </button>
                 </div>
                 <div className="overflow-x-auto">
                   <table className="w-full text-left border-collapse">
@@ -671,6 +695,10 @@ export const AuthorityDashboard: React.FC = () => {
             )}
 
           </div>
+        )}
+
+        {activeTab === 'analytics' && (
+          <AnalyticsBoard tickets={tickets} />
         )}
       </div>
 
