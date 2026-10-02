@@ -93,7 +93,8 @@ const runSeed = async () => {
         createdAt,
         slaBreachAt,
         escalated: Date.now() > slaBreachAt.getTime() && Math.random() > 0.5,
-        railwayJurisdiction: Math.random() > 0.9
+        railwayJurisdiction: Math.random() > 0.9,
+        isSynthetic: true
       });
     }
 

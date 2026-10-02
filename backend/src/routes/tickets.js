@@ -87,7 +87,7 @@ router.get('/', requireAuth, async (req, res) => {
 // POST /api/tickets
 router.post('/', async (req, res) => {
   try {
-    const { longitude, latitude, encryptedPayload, confidence_score, user_category, tags, isEmergency } = req.body;
+    const { longitude, latitude, encryptedPayload, confidence_score, user_category, tags, isEmergency, dHash } = req.body;
 
     // Basic Validation
     if (longitude == null || latitude == null || !encryptedPayload || !encryptedPayload.wrappedKeys || confidence_score == null || !user_category) {
@@ -99,7 +99,7 @@ router.post('/', async (req, res) => {
     }
 
     // Call secure ingestion service
-    const result = await ingestTicket({ longitude, latitude, encryptedPayload, confidence_score, user_category, tags, isEmergency });
+    const result = await ingestTicket({ longitude, latitude, encryptedPayload, confidence_score, user_category, tags, isEmergency, dHash });
     
     // Emit real-time event
     const io = req.app.get('io');
@@ -228,10 +228,7 @@ router.patch('/:id/status', requireAuth, logAction('STATUS_UPDATE'), async (req,
       ticket.assigned_team = null;
     }
 
-    if (status === 'REPORTED') {
-      // Forward to Childline simultaneously for verified children cases
-      notificationService.forwardToChildline(ticket).catch(e => console.error(e));
-    }
+
 
     await ticket.save();
     
@@ -269,26 +266,6 @@ router.post('/:id/audit-decrypt', requireAuth, logAction('EVIDENCE_DECRYPTED'), 
   res.json({ success: true, message: 'Decryption logged securely.' });
 });
 
-// POST /api/verify-khoya-paya - Mock Facial Recognition Bridge
-router.post('/verify-khoya-paya', requireAuth, logAction('KHOYA_PAYA_CHECK'), async (req, res) => {
-  try {
-    // Simulate API delay for national database check
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    
-    // Return a random mock match
-    const matchScore = Math.floor(Math.random() * (99 - 40 + 1)) + 40; // 40 to 99%
-    const isMatch = matchScore > 80;
 
-    res.json({
-      matchFound: isMatch,
-      confidence: matchScore,
-      database: 'KhoyaPaya-National',
-      matchedProfileId: isMatch ? `KP-${Math.floor(Math.random() * 100000)}` : null,
-      message: isMatch ? 'HIGH CONFIDENCE MATCH FOUND' : 'No significant matches found in national database.'
-    });
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to connect to Khoya Paya database.' });
-  }
-});
 
 module.exports = router;

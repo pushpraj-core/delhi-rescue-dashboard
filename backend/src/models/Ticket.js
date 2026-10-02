@@ -40,6 +40,10 @@ const ticketSchema = new mongoose.Schema({
     type: Number,
     required: true
   },
+  dHash: {
+    type: String,
+    required: false
+  },
   user_category: {
     type: String,
     enum: ['Traffic Intersection Begging', 'Hazardous Labor', 'Unattended Child'],
@@ -80,6 +84,10 @@ const ticketSchema = new mongoose.Schema({
     type: Date
   },
   escalated: {
+    type: Boolean,
+    default: false
+  },
+  isSynthetic: {
     type: Boolean,
     default: false
   },

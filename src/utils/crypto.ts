@@ -4,7 +4,7 @@
  */
 
 export interface EncryptedPayload {
-  encryptedAesKey: string; // Base64
+  wrappedKeys: { officerEmail: string; wrappedKey: string }[];
   iv: string;              // Base64
   encryptedData: string;   // Base64
 }
@@ -105,8 +105,14 @@ export async function decryptImagePayload(
     ['decrypt']
   );
 
-  // 2. Decrypt the AES Key
-  const encryptedAesKeyBuffer = base64ToArrayBuffer(payload.encryptedAesKey);
+  // 2. Extract AES Key
+  const wrappedKeyStr = payload.wrappedKeys && payload.wrappedKeys.length > 0 
+    ? payload.wrappedKeys[0].wrappedKey 
+    : (payload as any).encryptedAesKey; // fallback for legacy data
+    
+  if (!wrappedKeyStr) throw new Error('No wrapped key found');
+
+  const encryptedAesKeyBuffer = base64ToArrayBuffer(wrappedKeyStr);
   const decryptedAesKeyRaw = await window.crypto.subtle.decrypt(
     { name: 'RSA-OAEP' },
     rsaPrivKey,

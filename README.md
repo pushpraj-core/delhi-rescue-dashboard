@@ -8,9 +8,9 @@ A secure, offline-first Progressive Web App (PWA) and ML-powered Nodal Dispatch 
 1. **Zero-Leak Citizen App (PWA)**:
    - Client-side TensorFlow.js automatically blurs children's faces *before* the image is saved or transmitted.
    - Works fully offline using IndexedDB with exponential backoff syncing.
-   - Tamper-evident perceptual hashes (dHash) prevent deepfakes.
+   - Perceptual hashes (dHash) provide duplicate and tamper checking.
 
-2. **Military-Grade Security (Tier 1)**:
+2. **Data Security & Privacy (Tier 1)**:
    - **Envelope Encryption**: AES-GCM payloads wrapped in RSA-OAEP keys. Data cannot be read if the database is breached.
    - **Immutable Audit Log**: Cryptographically chained SHA-256 ledger tracks every single view, action, and decryption. 
 
@@ -21,7 +21,7 @@ A secure, offline-first Progressive Web App (PWA) and ML-powered Nodal Dispatch 
    - **Real-time**: Socket.io ensures the Authority board updates instantly without polling.
 
 4. **Multi-lingual Support (Tier 4)**:
-   - Full i18n support for English, Hindi, and Marathi in the citizen capture app.
+   - i18n support for English, Hindi, and Marathi in the citizen capture app.
 
 ## Tech Stack
 - **Frontend**: React, Vite, TailwindCSS, TensorFlow.js (BlazeFace), i18next
@@ -34,6 +34,11 @@ Please see the `/docs` directory for deep-dives into our design philosophy:
 - `ARCHITECTURE.md`
 - `THREAT_MODEL.md`
 - `DECISIONS.md`
+
+## Limitations & Hackathon Context
+- **Synthetic Data**: All data, tickets, and ML forecasts are synthetic and for demonstration purposes only.
+- **Human-in-the-loop**: ML handles initial prioritization, but final dispatch decisions require human verification.
+- **No Live Integrations**: This prototype is not connected to the live Childline (1098) or national Khoya Paya database.
 
 ## Getting Started
 

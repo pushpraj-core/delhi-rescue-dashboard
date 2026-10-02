@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Shield, Key, Eye, Lock, MapPin, AlertCircle, Map, LayoutDashboard, List, Activity, UserCheck, Users, MessageSquare, Send, FileText, History, CheckCircle, Clock } from 'lucide-react';
 import { GoogleLogin } from '@react-oauth/google';
-import { decryptImagePayload, getOrCreateOfficerKeys } from '../../utils/crypto';
+import { decryptImagePayload, getOrCreateOfficerKeys, type EncryptedPayload } from '../../utils/crypto';
 import { apiFetch, setAuthToken } from '../../utils/apiClient';
 
 import { MapViewer } from './MapViewer';
@@ -24,6 +24,7 @@ interface Ticket {
   notes?: { text: string; author: string; createdAt: string }[];
   priority?: string;
   trackingId?: string;
+  isSynthetic?: boolean;
 }
 
 interface AuditLogEntry {
@@ -33,6 +34,7 @@ interface AuditLogEntry {
   officerId: string;
   details: any;
   timestamp: string;
+  hash: string;
 }
 
 export const AuthorityDashboard: React.FC = () => {
@@ -40,13 +42,13 @@ export const AuthorityDashboard: React.FC = () => {
   const [hotspots, setHotspots] = useState<[number, number, number][]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [privateKeyInput, setPrivateKeyInput] = useState('');
 
   const [isGoogleAuthenticated, setIsGoogleAuthenticated] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [googleAuthError, setGoogleAuthError] = useState<string | null>(null);
   const [decryptedImages, setDecryptedImages] = useState<Record<string, string>>({});
   const [decryptingIds, setDecryptingIds] = useState<Record<string, boolean>>({});
-  const [khoyaPayaResults, setKhoyaPayaResults] = useState<Record<string, any>>({});
   const [noteInputs, setNoteInputs] = useState<Record<string, string>>({});
   const [auditLogs, setAuditLogs] = useState<AuditLogEntry[]>([]);
   const [toast, setToast] = useState<{message: string, type: 'success'|'error'} | null>(null);
@@ -121,6 +123,23 @@ export const AuthorityDashboard: React.FC = () => {
     }
   };
 
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const parsedKey = JSON.parse(privateKeyInput);
+      if (!parsedKey.kty) throw new Error('Invalid JWK');
+      
+      const { set } = await import('idb-keyval');
+      // Store only in IndexedDB for demo, in production we'd want this non-extractable in memory
+      await set('officer_keys', { privateKey: parsedKey, publicKey: parsedKey }); 
+      
+      setIsAuthenticated(true);
+      setError(null);
+    } catch (err) {
+      setError('Invalid Private Key format. Must be a valid JWK JSON.');
+    }
+  };
+
   const handleGoogleSuccess = async (credentialResponse: any) => {
     try {
       setGoogleAuthError(null);
@@ -188,18 +207,7 @@ export const AuthorityDashboard: React.FC = () => {
     }
   };
 
-  const checkKhoyaPaya = async (ticketId: string) => {
-    try {
-      const data = await apiFetch('/api/tickets/verify-khoya-paya', {
-        method: 'POST',
-        body: JSON.stringify({ ticketId })
-      });
-      setKhoyaPayaResults(prev => ({ ...prev, [ticketId]: data }));
-      fetchAuditLogs();
-    } catch (err) {
-      console.error('Failed to check database', err);
-    }
-  };
+
 
   const handleStatusUpdate = async (id: string, newStatus: string) => {
     try {
@@ -309,8 +317,15 @@ export const AuthorityDashboard: React.FC = () => {
     closed: tickets.filter(t => ['CLOSED', 'REJECTED', 'DUPLICATE'].includes(t.status)).length,
   };
 
+  const hasSynthetic = tickets.some(t => t.isSynthetic);
+
   return (
     <div className="bg-dotted-paper min-h-[calc(100vh-64px)] font-body text-[var(--ink)] pb-16 pt-8">
+      {hasSynthetic && (
+        <div className="max-w-[1200px] mx-auto mb-4 bg-[var(--stamp)] text-white text-center py-2 rounded-xl font-bold text-sm tracking-widest uppercase shadow-sm">
+          ⚠️ Synthetic Demo Data Mode Active
+        </div>
+      )}
       <div className="max-w-[1200px] mx-auto px-6">
         
         {/* Header & Controls */}
@@ -446,18 +461,6 @@ export const AuthorityDashboard: React.FC = () => {
                       {decryptedImages[ticket._id] ? (
                         <>
                           <img src={decryptedImages[ticket._id]} alt="Decrypted Evidence" className="w-full h-full object-cover" />
-                          {!khoyaPayaResults[ticket._id] ? (
-                            <button 
-                              onClick={() => checkKhoyaPaya(ticket._id)}
-                              className="absolute bottom-2 left-2 right-2 px-2 py-2 bg-[var(--ink)]/80 backdrop-blur text-white text-[11px] font-semibold rounded-lg hover:bg-[var(--ink)] transition"
-                            >
-                              Check Khoya Paya DB
-                            </button>
-                          ) : (
-                            <div className={`absolute bottom-0 left-0 right-0 p-2 text-[11px] font-semibold text-center backdrop-blur ${khoyaPayaResults[ticket._id].matchFound ? 'bg-[var(--teal)]/90 text-white' : 'bg-black/80 text-white'}`}>
-                              {khoyaPayaResults[ticket._id].matchFound ? `Match: ${khoyaPayaResults[ticket._id].confidence}% (${khoyaPayaResults[ticket._id].matchedProfileId})` : 'No Match Found'}
-                            </div>
-                          )}
                         </>
                       ) : (
                         <>

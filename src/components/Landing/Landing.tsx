@@ -145,7 +145,7 @@ export const Landing: React.FC = () => {
           <div className="dash-grid">
             <div>
               <div className="mock" style={{ marginBottom: '16px' }}>
-                <div className="mock-header"><span>HOTSPOT MAP · DECK.GL</span><div className="mock-dots"><i></i><i></i><i></i></div></div>
+                <div className="mock-header"><span>HOTSPOT MAP · LEAFLET & H3</span><div className="mock-dots"><i></i><i></i><i></i></div></div>
                 <div className="map-mock"></div>
               </div>
               <div className="mock">
@@ -175,7 +175,7 @@ export const Landing: React.FC = () => {
               </div>
               <div className="dash-feature">
                 <h4>Real-time hotspot mapping</h4>
-                <p>Deck.gl visualises report density across a district, helping units plan proactive patrols.</p>
+                <p>H3 geospatial indexing visualises report density across a district, helping units plan proactive patrols.</p>
               </div>
               <div className="dash-feature">
                 <h4>Drag-and-drop dispatch</h4>
@@ -186,17 +186,7 @@ export const Landing: React.FC = () => {
         </div>
       </section>
 
-      <section className="impact" id="impact">
-        <div className="wrap">
-          <div className="impact-row">
-            <div className="impact-stat"><div className="num">1,204</div><div className="label">REPORTS FILED</div></div>
-            <div className="impact-stat"><div className="num">318</div><div className="label">CHILDREN REACHED</div></div>
-            <div className="impact-stat"><div className="num">11 MIN</div><div className="label">AVG. RESPONSE TIME</div></div>
-            <div className="impact-stat"><div className="num">14</div><div className="label">DISTRICT UNITS ONBOARDED</div></div>
-          </div>
-          <div className="sample-tag">* Sample data shown for illustration — figures will reflect live deployments once onboarded.</div>
-        </div>
-      </section>
+
 
       <section className="final-cta">
         <div className="wrap">

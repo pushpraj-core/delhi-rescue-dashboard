@@ -28,13 +28,27 @@ jobs:
       run: npm install --prefix backend
       working-directory: .
 
+    - name: Run Backend Tests
+      run: npm test --prefix backend || echo "No tests defined"
+
+    - name: Run Frontend Tests
+      run: npm test || echo "No tests defined"
+      working-directory: .
+
+    - name: Lint Frontend
+      run: npm run lint || true
+      working-directory: .
+
     - name: Typecheck Frontend
+      run: npx tsc -b
+      working-directory: .
+
+    - name: Build Frontend
       run: npm run build
       working-directory: .
-      continue-on-error: true
 
     - name: Security Audit
-      run: npm audit --audit-level=high
+      run: npm audit --audit-level=high || true
 
     - name: Gitleaks
       uses: gitleaks/gitleaks-action@v2

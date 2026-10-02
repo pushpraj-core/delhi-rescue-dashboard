@@ -15,7 +15,7 @@ export const initModel = async (): Promise<void> => {
 export const captureSecurely = async (
   video: HTMLVideoElement,
   canvas: HTMLCanvasElement
-): Promise<{ blob: Blob; scene_confidence_score: number }> => {
+): Promise<{ blob: Blob; scene_confidence_score: number; dHash: string }> => {
   if (!detector) {
     throw new Error('Model not initialized');
   }
@@ -115,16 +115,54 @@ export const captureSecurely = async (
   }
 };
 
-// Simple on-device perceptual hash (dHash) implementation
+// Simple on-device perceptual hash (dHash) implementation for duplicate/tamper check
 async function generateDHash(imageData: ImageData): Promise<string> {
-  // Real implementation would resize to 9x8 grayscale, compare adjacent pixels
-  // Mocking deterministic string based on length/some bytes for now
-  const arr = imageData.data;
-  let hash = '';
-  for(let i=0; i<64; i++) {
-    const p1 = arr[(i*100) % arr.length] || 0;
-    const p2 = arr[((i*100)+4) % arr.length] || 0;
-    hash += p1 > p2 ? '1' : '0';
+  // Create an offscreen canvas to resize to 9x8 grayscale
+  const canvas = document.createElement('canvas');
+  canvas.width = 9;
+  canvas.height = 8;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return '0000000000000000';
+
+  // We need to draw the imageData onto a temporary canvas first to resize it
+  const tempCanvas = document.createElement('canvas');
+  tempCanvas.width = imageData.width;
+  tempCanvas.height = imageData.height;
+  const tempCtx = tempCanvas.getContext('2d');
+  if (!tempCtx) return '0000000000000000';
+  tempCtx.putImageData(imageData, 0, 0);
+
+  // Draw onto 9x8 canvas
+  ctx.drawImage(tempCanvas, 0, 0, 9, 8);
+  const resizedData = ctx.getImageData(0, 0, 9, 8).data;
+
+  // Convert to grayscale
+  const grays = [];
+  for (let i = 0; i < resizedData.length; i += 4) {
+    const r = resizedData[i];
+    const g = resizedData[i + 1];
+    const b = resizedData[i + 2];
+    // Luminosity method
+    const gray = 0.299 * r + 0.587 * g + 0.114 * b;
+    grays.push(gray);
   }
-  return parseInt(hash, 2).toString(16).padStart(16, '0');
+
+  // Calculate dHash (compare adjacent pixels in each row)
+  let hashStr = '';
+  for (let y = 0; y < 8; y++) {
+    for (let x = 0; x < 8; x++) {
+      const left = grays[y * 9 + x];
+      const right = grays[y * 9 + x + 1];
+      hashStr += left > right ? '1' : '0';
+    }
+  }
+
+  // Convert 64-bit binary string to hex
+  let hexHash = '';
+  for (let i = 0; i < 64; i += 4) {
+    const chunk = hashStr.substr(i, 4);
+    hexHash += parseInt(chunk, 2).toString(16);
+  }
+
+  return hexHash;
 }
