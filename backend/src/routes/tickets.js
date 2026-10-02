@@ -157,15 +157,15 @@ router.patch('/:id/status', requireAuth, logAction('STATUS_UPDATE'), async (req,
     if (!ticket) return res.status(404).json({ error: 'Ticket not found' });
 
     const VALID_TRANSITIONS = {
-      'REPORTED': ['VERIFIED', 'REJECTED', 'DUPLICATE', 'DISPATCHED'], // Dispatched added for quick actions
-      'VERIFIED': ['DISPATCHED'],
-      'DISPATCHED': ['RESCUED'],
-      'RESCUED': ['CWC_PRODUCED'],
-      'CWC_PRODUCED': ['REHAB_FOLLOWUP', 'CLOSED'],
-      'REHAB_FOLLOWUP': ['CLOSED'],
+      'REPORTED': ['DISPATCHED', 'REJECTED', 'CLOSED'],
+      'VERIFIED': ['DISPATCHED', 'REJECTED', 'CLOSED'], // Legacy support
+      'DISPATCHED': ['RESCUED', 'CLOSED'],
+      'RESCUED': ['CLOSED'],
+      'CWC_PRODUCED': ['CLOSED'], // Legacy support
+      'REHAB_FOLLOWUP': ['CLOSED'], // Legacy support
       'CLOSED': [],
       'REJECTED': [],
-      'DUPLICATE': []
+      'DUPLICATE': ['REJECTED', 'CLOSED'] // Legacy support
     };
 
     if (status && status !== ticket.status) {
@@ -228,7 +228,7 @@ router.patch('/:id/status', requireAuth, logAction('STATUS_UPDATE'), async (req,
       ticket.assigned_team = null;
     }
 
-    if (status === 'VERIFIED') {
+    if (status === 'REPORTED') {
       // Forward to Childline simultaneously for verified children cases
       notificationService.forwardToChildline(ticket).catch(e => console.error(e));
     }

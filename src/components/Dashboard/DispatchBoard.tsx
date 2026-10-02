@@ -16,11 +16,14 @@ interface Ticket {
   trackingId?: string;
 }
 
-const STATUSES = ['REPORTED', 'VERIFIED', 'DISPATCHED', 'RESCUED', 'CWC_PRODUCED', 'REHAB_FOLLOWUP', 'CLOSED', 'REJECTED', 'DUPLICATE'];
+const STATUSES = ['REPORTED', 'DISPATCHED', 'RESCUED', 'CLOSED', 'REJECTED'];
 
 // TEAMS are now fetched from API
 
 const normalizeStatus = (status: string) => {
+  if (['VERIFIED'].includes(status)) return 'REPORTED';
+  if (['CWC_PRODUCED', 'REHAB_FOLLOWUP'].includes(status)) return 'RESCUED';
+  if (['DUPLICATE'].includes(status)) return 'REJECTED';
   if (STATUSES.includes(status)) return status;
   return 'REPORTED';
 };

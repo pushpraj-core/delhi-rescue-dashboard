@@ -491,15 +491,11 @@ export const AuthorityDashboard: React.FC = () => {
                               : 'bg-[var(--teal-light)] text-white border-[var(--teal)]'
                             }`}
                           >
-                            <option value="REPORTED">Reported</option>
-                            <option value="VERIFIED">Verified</option>
+                            <option value="REPORTED">Reported (AI Verified)</option>
                             <option value="DISPATCHED">Dispatched</option>
                             <option value="RESCUED">Rescued</option>
-                            <option value="CWC_PRODUCED">CWC Produced</option>
-                            <option value="REHAB_FOLLOWUP">Rehab Followup</option>
                             <option value="CLOSED">Closed</option>
                             <option value="REJECTED">Rejected</option>
-                            <option value="DUPLICATE">Duplicate</option>
                           </select>
                           {ticket.isEmergency && <span className="px-2 py-1 bg-[var(--stamp)] text-white text-[10px] font-bold uppercase tracking-wider rounded-[2px] flex items-center gap-1 border-[1.5px] border-[var(--ink)]"><AlertCircle className="w-3 h-3"/> Emergency</span>}
                           <select
