@@ -12,6 +12,7 @@ const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 router.post('/google', async (req, res) => {
   try {
+    console.log('[Auth] /google hit! Credential received.');
     const { credential } = req.body;
 
     if (!credential) {

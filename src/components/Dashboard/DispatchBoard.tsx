@@ -93,40 +93,7 @@ const TicketCard = ({ ticket, onClick, onStatusChange, onTeamAssign, availableTe
         </div>
       )}
 
-      {/* Team Assignment Dropdown – only shown when dispatched */}
-      {isDispatched && (
-        <div className="mb-3 flex items-center gap-2">
-          <select
-            value={ticket.assigned_team || ''}
-            onChange={(e) => onTeamAssign(ticket._id, e.target.value)}
-            className="flex-1 text-[12px] font-semibold p-2 rounded-lg border border-[var(--teal)]/30 bg-[var(--teal)]/5 text-[var(--ink)] outline-none cursor-pointer focus:border-[var(--teal)] hover:bg-[var(--teal)]/10 transition-colors"
-          >
-            <option value="">— Select Team —</option>
-            {availableTeams.map(team => (
-              <option key={team.name} value={team.name}>{team.name} ({team.ward})</option>
-            ))}
-          </select>
-          <button 
-            onClick={async () => {
-              try {
-                const { apiFetch } = await import('../../utils/apiClient');
-                const data = await apiFetch(`/api/teams/suggest/${ticket._id}`);
-                if (data.teams && data.teams.length > 0) {
-                  onTeamAssign(ticket._id, data.teams[0].name);
-                } else {
-                  alert('No teams available nearby.');
-                }
-              } catch(e) {
-                console.error(e);
-              }
-            }}
-            className="px-2 py-2 text-[10px] font-bold uppercase bg-[var(--teal)] text-white rounded-lg hover:bg-[var(--teal)]/80 transition-colors"
-            title="Suggest nearest available team"
-          >
-            Suggest
-          </button>
-        </div>
-      )}
+      {/* Auto-Dispatch takes care of team assignment, we just display it above */}
       
       <div className="flex justify-between items-center mt-3 pt-3 border-t border-[var(--line)]">
         <div className="flex items-center gap-1 text-[11px] font-semibold text-[var(--ink-soft)] tracking-wider cursor-pointer" onClick={onClick}>

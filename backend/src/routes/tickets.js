@@ -189,10 +189,41 @@ router.patch('/:id/status', requireAuth, logAction('STATUS_UPDATE'), async (req,
     }
 
     // Only persist team assignment when dispatching; clear it otherwise
-    if (status === 'DISPATCHED' && assigned_team) {
-      ticket.assigned_team = assigned_team;
-      // Notify the newly assigned team
-      notificationService.alertTeam(assigned_team, ticket).catch(e => console.error(e));
+    if (status === 'DISPATCHED') {
+      let finalTeam = assigned_team;
+      if (!finalTeam) {
+        // Auto-assign the nearest available team
+        const Team = require('../models/Team');
+        let query = { status: 'AVAILABLE' };
+        if (ticket.railwayJurisdiction) query.isRailwayPolice = true;
+
+        const suggestedTeams = await Team.find({
+          ...query,
+          location: {
+            $near: {
+              $geometry: { type: 'Point', coordinates: ticket.location.coordinates }
+            }
+          }
+        }).limit(1);
+
+        if (suggestedTeams.length > 0) {
+          finalTeam = suggestedTeams[0].name;
+        } else if (ticket.railwayJurisdiction) {
+          // Fallback if no railway teams
+          const fallbackTeams = await Team.find({
+            status: 'AVAILABLE',
+            location: {
+              $near: { $geometry: { type: 'Point', coordinates: ticket.location.coordinates } }
+            }
+          }).limit(1);
+          if (fallbackTeams.length > 0) finalTeam = fallbackTeams[0].name;
+        }
+      }
+
+      if (finalTeam) {
+        ticket.assigned_team = finalTeam;
+        notificationService.alertTeam(finalTeam, ticket).catch(e => console.error(e));
+      }
     } else if (status && status !== 'DISPATCHED' && status !== ticket.status) {
       ticket.assigned_team = null;
     }
