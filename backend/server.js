@@ -56,7 +56,7 @@ app.use((err, req, res, next) => {
 
 const PORT = process.env.PORT || 5000;
 // Connects to MongoDB Atlas Cloud Database in production
-const MONGO_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/raksha_mumbai';
+const MONGO_URI = process.env.MONGO_URI || process.env.MONGODB_URI || 'mongodb://localhost:27017/raksha_mumbai';
 
 // Connect to MongoDB and start server
 if (process.env.NODE_ENV !== 'test') {
@@ -129,7 +129,7 @@ if (process.env.NODE_ENV !== 'test') {
         }
       }, 60 * 1000); // Check every minute
 
-      server.listen(PORT, () => {
+      server.listen(PORT, '127.0.0.1', () => {
         console.log(`✅ Secure Backend & Socket running on port ${PORT}`);
       });
     })

@@ -60,7 +60,9 @@ const HeatmapLayer = ({ points }: { points: [number, number, number][] }) => {
 };
 
 export const MapViewer: React.FC<MapViewerProps> = ({ tickets }) => {
-  const delhiCenter: [number, number] = [28.6139, 77.2090];
+  // Mumbai coordinates
+  const mumbaiCenter: [number, number] = [19.0760, 72.8777];
+  const mapboxToken = import.meta.env.VITE_MAPBOX_TOKEN;
   
   // Convert tickets to heatmap points
   const points: [number, number, number][] = tickets.map(t => [
@@ -72,14 +74,14 @@ export const MapViewer: React.FC<MapViewerProps> = ({ tickets }) => {
   return (
     <div className="w-full h-[500px] rounded-xl overflow-hidden border border-[var(--line)] shadow-sm relative z-0">
       <MapContainer 
-        center={delhiCenter} 
+        center={mumbaiCenter} 
         zoom={11} 
         className="w-full h-full z-0"
         scrollWheelZoom={false}
       >
         <TileLayer
-          url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+          url={`https://api.mapbox.com/styles/v1/mapbox/dark-v11/tiles/256/{z}/{x}/{y}@2x?access_token=${mapboxToken}`}
+          attribution='Map data &copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors, <a href="https://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, Imagery &copy; <a href="https://www.mapbox.com/">Mapbox</a>'
         />
         
         {/* Heatmap Layer */}

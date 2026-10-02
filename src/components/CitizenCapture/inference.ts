@@ -128,7 +128,3 @@ async function generateDHash(imageData: ImageData): Promise<string> {
   }
   return parseInt(hash, 2).toString(16).padStart(16, '0');
 }
-  } catch (error) {
-    throw new Error('Secure capture failed: ' + (error as Error).message);
-  }
-};
