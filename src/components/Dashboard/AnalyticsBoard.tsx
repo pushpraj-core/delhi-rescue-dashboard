@@ -32,45 +32,34 @@ export const AnalyticsBoard = ({ tickets }: { tickets: any[] }) => {
 
 
 
-  // Forecast Data (Linear Moving Average)
-  const last7Days = Array.from({length: 7}, (_, i) => {
-    const d = new Date();
-    d.setDate(d.getDate() - (6 - i));
-    return d.toISOString().split('T')[0];
-  });
-
-  const dailyCritical = tickets.reduce((acc: any, t) => {
+  // Forecast Data (Hourly for Next 24h)
+  const hourlyDistribution = Array(24).fill(0);
+  let totalCritical = 0;
+  tickets.forEach(t => {
     if (t.priority === 'Critical' && t.createdAt) {
-      const dateStr = new Date(t.createdAt).toISOString().split('T')[0];
-      acc[dateStr] = (acc[dateStr] || 0) + 1;
+      const hour = new Date(t.createdAt).getHours();
+      hourlyDistribution[hour] += 1;
+      totalCritical += 1;
     }
-    return acc;
-  }, {});
-
-  const forecastData: any[] = last7Days.map((date, i) => {
-    const actual = dailyCritical[date] || 0;
-    // Deterministic historical "forecast" using average of previous 2 days
-    const prev1 = i > 0 ? (dailyCritical[last7Days[i-1]] || 0) : actual;
-    const prev2 = i > 1 ? (dailyCritical[last7Days[i-2]] || 0) : prev1;
-    const histForecast = Math.round((prev1 + prev2) / 2) || actual;
-
-    return {
-      date: date.slice(5),
-      actual: actual,
-      forecast: histForecast
-    };
   });
 
-  const sum = forecastData.reduce((acc, curr) => acc + (curr.actual || 0), 0);
-  const avg = Math.round(sum / 7);
+  const currentHour = new Date().getHours();
+  const dailyTotal = Math.max(5, Math.round(totalCritical / 7));
   
-  const tomorrow = new Date();
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  forecastData.push({
-    date: tomorrow.toISOString().split('T')[0].slice(5) + ' (24h)',
-    actual: null,
-    forecast: avg
-  });
+  const forecastData: any[] = [];
+  for (let i = 1; i <= 24; i++) {
+    const nextHour = (currentHour + i) % 24;
+    const ampm = nextHour >= 12 ? 'PM' : 'AM';
+    const displayHour = nextHour % 12 || 12;
+    
+    const prob = totalCritical > 0 ? (hourlyDistribution[nextHour] / totalCritical) : (1/24);
+    const predictedCount = parseFloat(((prob * dailyTotal) + 0.1).toFixed(1));
+    
+    forecastData.push({
+      time: `${displayHour} ${ampm}`,
+      predicted: predictedCount
+    });
+  }
 
   const COLORS = ['#14b8a6', '#f59e0b', '#3b82f6', '#a23b2e', '#8b5cf6'];
 
@@ -159,11 +148,10 @@ export const AnalyticsBoard = ({ tickets }: { tickets: any[] }) => {
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={forecastData} margin={{ top: 5, right: 20, left: -20, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                <XAxis dataKey="date" stroke="#94a3b8" fontSize={10} />
+                <XAxis dataKey="time" stroke="#94a3b8" fontSize={10} interval={2} />
                 <YAxis stroke="#94a3b8" fontSize={10} />
                 <Tooltip />
-                <Line type="monotone" dataKey="actual" stroke="#1e40af" strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} name="Actual Critical Cases" />
-                <Line type="monotone" dataKey="forecast" stroke="#60a5fa" strokeWidth={3} strokeDasharray="5 5" dot={{ r: 4 }} name="Forecast (ML)" />
+                <Line type="monotone" dataKey="predicted" stroke="#3b82f6" strokeWidth={3} dot={false} activeDot={{ r: 6 }} name="Forecast (ML)" />
               </LineChart>
             </ResponsiveContainer>
           </div>
