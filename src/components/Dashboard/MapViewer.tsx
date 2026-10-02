@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { MapContainer, TileLayer, useMap, Marker, Popup } from 'react-leaflet';
+import { MapContainer, TileLayer, useMap, Marker, Popup, GeoJSON } from 'react-leaflet';
+import mumbaiGeoJSON from '../../data/mumbai_wards.json';
 import * as L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
@@ -133,6 +134,19 @@ export const MapViewer: React.FC<MapViewerProps> = ({ tickets }) => {
         <TileLayer
           url={`https://api.mapbox.com/styles/v1/mapbox/dark-v11/tiles/256/{z}/{x}/{y}@2x?access_token=${mapboxToken}`}
           attribution='Map data &copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors, <a href="https://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, Imagery &copy; <a href="https://www.mapbox.com/">Mapbox</a>'
+        />
+        
+        {/* Mumbai City Boundary Layer */}
+        <GeoJSON 
+          // @ts-ignore
+          data={mumbaiGeoJSON} 
+          style={{ 
+            color: '#14b8a6', // teal color matching the UI
+            weight: 2, 
+            opacity: 0.6, 
+            fillColor: '#14b8a6', 
+            fillOpacity: 0.05 
+          }} 
         />
         
         {/* Heatmap Layer */}
