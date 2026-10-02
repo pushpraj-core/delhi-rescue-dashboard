@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { MapContainer, TileLayer, useMap, Marker, Popup } from 'react-leaflet';
 import * as L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -25,6 +25,7 @@ interface Ticket {
   district_id: string;
   location: { coordinates: [number, number] };
   isEmergency?: boolean;
+  priority?: string;
 }
 
 interface MapViewerProps {
@@ -60,19 +61,69 @@ const HeatmapLayer = ({ points }: { points: [number, number, number][] }) => {
 };
 
 export const MapViewer: React.FC<MapViewerProps> = ({ tickets }) => {
+  const [filterCategory, setFilterCategory] = useState<string>('All');
+  const [filterPriority, setFilterPriority] = useState<string>('All');
+
   // Mumbai coordinates
   const mumbaiCenter: [number, number] = [19.0760, 72.8777];
   const mapboxToken = import.meta.env.VITE_MAPBOX_TOKEN;
   
+  // Filter tickets based on selection
+  const filteredTickets = tickets.filter(t => {
+    if (filterCategory !== 'All' && t.user_category !== filterCategory) return false;
+    if (filterPriority !== 'All') {
+      if (filterPriority === 'Critical' && !t.isEmergency && t.priority !== 'Critical') return false;
+      if (filterPriority === 'High' && t.priority !== 'High') return false;
+      if (filterPriority === 'Medium' && t.priority !== 'Medium') return false;
+      if (filterPriority === 'Low' && t.priority !== 'Low') return false;
+    }
+    return true;
+  });
+
   // Convert tickets to heatmap points
-  const points: [number, number, number][] = tickets.map(t => [
+  const points: [number, number, number][] = filteredTickets.map(t => [
     t.location.coordinates[1], // lat
     t.location.coordinates[0], // lng
-    t.status === 'High Priority' || t.isEmergency ? 1 : 0.5 // intensity
+    t.priority === 'High' || t.priority === 'Critical' || t.isEmergency ? 1 : 0.5 // intensity
   ]);
 
   return (
     <div className="w-full h-[500px] rounded-xl overflow-hidden border border-[var(--line)] shadow-sm relative z-0">
+      
+      {/* Floating Control Panel */}
+      <div className="absolute top-4 right-4 z-[400] bg-white/90 backdrop-blur-md p-4 rounded-xl border border-[var(--line)] shadow-lg w-64">
+        <h4 className="font-display font-semibold text-[14px] mb-3 text-[var(--ink)]">Advanced Filters</h4>
+        
+        <div className="mb-3">
+          <label className="text-[11px] font-bold text-[var(--ink-soft)] uppercase tracking-wider mb-1 block">Category</label>
+          <select 
+            value={filterCategory}
+            onChange={(e) => setFilterCategory(e.target.value)}
+            className="w-full text-[13px] p-2 rounded-lg border border-[var(--line)] bg-white/50 text-[var(--ink)] focus:outline-none focus:border-[var(--teal)] transition-colors"
+          >
+            <option value="All">All Categories</option>
+            <option value="Traffic Intersection Begging">Traffic Intersection Begging</option>
+            <option value="Hazardous Labor">Hazardous Labor</option>
+            <option value="Unattended Child">Unattended Child</option>
+          </select>
+        </div>
+
+        <div>
+          <label className="text-[11px] font-bold text-[var(--ink-soft)] uppercase tracking-wider mb-1 block">Priority / Urgency</label>
+          <select 
+            value={filterPriority}
+            onChange={(e) => setFilterPriority(e.target.value)}
+            className="w-full text-[13px] p-2 rounded-lg border border-[var(--line)] bg-white/50 text-[var(--ink)] focus:outline-none focus:border-[var(--teal)] transition-colors"
+          >
+            <option value="All">All Priorities</option>
+            <option value="Critical">Critical (Emergency)</option>
+            <option value="High">High</option>
+            <option value="Medium">Medium</option>
+            <option value="Low">Low</option>
+          </select>
+        </div>
+      </div>
+
       <MapContainer 
         center={mumbaiCenter} 
         zoom={11} 
@@ -88,7 +139,7 @@ export const MapViewer: React.FC<MapViewerProps> = ({ tickets }) => {
         <HeatmapLayer points={points} />
 
         {/* Interactive Clickable Markers */}
-        {tickets.map(t => (
+        {filteredTickets.map(t => (
           <Marker key={t._id} position={[t.location.coordinates[1], t.location.coordinates[0]]}>
             <Popup>
               <div className="text-sm font-body min-w-[150px] text-[var(--ink)]">
