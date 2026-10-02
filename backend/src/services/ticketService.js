@@ -121,8 +121,8 @@ const ingestTicket = async (ticketData) => {
     if (relocatedTicket && relocatedTicket.trackingId !== trackingId) {
       console.log(`[Zero-Knowledge Match] Matched face vector to ticket ${relocatedTicket.trackingId}`);
       relocatedTicket.reportCount += 1;
-      relocatedTicket.priority = 'Critical'; // Upgrade priority since they are moving
-      // We can also add a note to the existing ticket
+      // We retain the existing priority determined by the ML model instead of jumping to Critical,
+      // because movement across the city doesn't necessarily indicate an emergency.
       await relocatedTicket.save();
       return { status: 'DUPLICATE_UPDATED', ticket: relocatedTicket };
     }
