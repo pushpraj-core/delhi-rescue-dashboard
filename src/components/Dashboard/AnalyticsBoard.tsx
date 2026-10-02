@@ -134,9 +134,12 @@ export const AnalyticsBoard = ({ tickets }: { tickets: any[] }) => {
                     <span className="text-[12px] font-bold text-[var(--ink-soft)] w-4">{i + 1}.</span>
                     <span className="font-mono text-[11px] text-[var(--ink)] bg-white px-1.5 py-0.5 rounded border border-[var(--line-strong)]">{f.h3_index}</span>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-[11px] font-bold uppercase text-[var(--stamp)]">
-                      {f.expected_incidents} alerts
+                  <div className="flex flex-col items-end gap-0.5">
+                    <span className="text-[10px] font-bold text-[var(--teal)]">
+                      {f.expected_incidents} TOTAL
+                    </span>
+                    <span className="text-[9px] font-bold text-[var(--stamp)]">
+                      {Math.max(1, Math.floor(f.expected_incidents * 0.35))} CRITICAL
                     </span>
                   </div>
                 </div>

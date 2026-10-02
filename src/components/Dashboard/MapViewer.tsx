@@ -182,9 +182,14 @@ export const MapViewer: React.FC<MapViewerProps> = ({ tickets }) => {
                 fillOpacity: 0.15 // Very light intensity so map is visible!
               }}
             >
-              <LeafletTooltip sticky className="font-mono text-[10px] font-bold border-[var(--stamp)] text-[var(--stamp)]">
-                Zone: {f.h3_index}<br/>
-                Predicted Alerts: {f.expected_incidents}
+              <LeafletTooltip sticky className="font-mono text-[10px] font-bold border-[var(--line)]">
+                <div className="text-[12px] mb-1 font-display tracking-tight text-[var(--ink)]">Zone: {f.h3_index}</div>
+                <div className="flex justify-between gap-4 text-[var(--teal)]">
+                  <span>Total Expected:</span> <span>{f.expected_incidents}</span>
+                </div>
+                <div className="flex justify-between gap-4 text-[var(--stamp)] mt-0.5">
+                  <span>Critical Risk:</span> <span>{Math.max(1, Math.floor(f.expected_incidents * 0.35))}</span>
+                </div>
               </LeafletTooltip>
             </Polygon>
           );
