@@ -180,6 +180,7 @@ export const AuthorityDashboard: React.FC = () => {
       const privateKeyJwk = keys.privateKey;
       const blobUrl = await decryptImagePayload(ticket.encryptedPayload, privateKeyJwk);
       setDecryptedImages(prev => ({ ...prev, [ticket._id]: blobUrl }));
+      fetchAuditLogs();
     } catch (err: any) {
       setError(`Decryption failed for ticket ${ticket._id}: Invalid Key or Corrupted Data.`);
     } finally {
@@ -194,6 +195,7 @@ export const AuthorityDashboard: React.FC = () => {
         body: JSON.stringify({ ticketId })
       });
       setKhoyaPayaResults(prev => ({ ...prev, [ticketId]: data }));
+      fetchAuditLogs();
     } catch (err) {
       console.error('Failed to check database', err);
     }
@@ -208,6 +210,7 @@ export const AuthorityDashboard: React.FC = () => {
       });
       setTickets(prev => prev.map(t => t._id === id ? data.ticket : t));
       showToast(`Status updated to ${newStatus}`);
+      fetchAuditLogs();
     } catch (err: any) {
       console.error(err);
       fetchTickets();
@@ -223,6 +226,7 @@ export const AuthorityDashboard: React.FC = () => {
         body: JSON.stringify({ status: 'DISPATCHED', assigned_team: team || null })
       });
       showToast(`Team assigned: ${team}`);
+      fetchAuditLogs();
     } catch (err) {
       console.error(err);
       fetchTickets();
@@ -238,6 +242,7 @@ export const AuthorityDashboard: React.FC = () => {
         body: JSON.stringify({ priority })
       });
       showToast(`Priority updated to ${priority}`);
+      fetchAuditLogs();
     } catch (err) {
       console.error(err);
       fetchTickets();
