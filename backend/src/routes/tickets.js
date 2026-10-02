@@ -20,15 +20,26 @@ router.get('/audit-log', async (req, res) => {
 // GET /api/tickets/hotspots - Aggregation for Heatmap
 router.get('/hotspots', async (req, res) => {
   try {
-    // Aggregate: Group by proximity (approximated by rounding coords)
-    // For MVP, we return raw points for all tickets so they always appear in demos
-    const tickets = await Ticket.find({}).select('location status');
+    const tickets = await Ticket.find({}).select('location priority status');
     
-    const points = tickets.map(t => [
-      t.location.coordinates[1], // lat
-      t.location.coordinates[0], // lng
-      t.status === 'High Priority' ? 1 : 0.5 // intensity
-    ]);
+    const grid = {};
+    for (const t of tickets) {
+      if (!t.location || !t.location.coordinates) continue;
+      const lat = Math.round(t.location.coordinates[1] * 1000) / 1000;
+      const lng = Math.round(t.location.coordinates[0] * 1000) / 1000;
+      const key = `${lat},${lng}`;
+      
+      let weight = 0.5;
+      if (t.priority === 'Critical') weight = 1.0;
+      else if (t.priority === 'High') weight = 0.8;
+      
+      if (!grid[key]) {
+        grid[key] = { lat, lng, weight: 0 };
+      }
+      grid[key].weight += weight;
+    }
+    
+    const points = Object.values(grid).map(g => [g.lat, g.lng, g.weight]);
 
     res.json({ hotspots: points });
   } catch (error) {

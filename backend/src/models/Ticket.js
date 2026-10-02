@@ -71,8 +71,7 @@ const ticketSchema = new mongoose.Schema({
   }],
   createdAt: {
     type: Date,
-    default: Date.now,
-    expires: 86400 * 30 // TTL 30 days for cleanup (assuming compliance rules)
+    default: Date.now
   }
 });
 

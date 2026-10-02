@@ -1,0 +1,34 @@
+{
+  "city": "Mumbai",
+  "state": "Maharashtra",
+  "timezone": "Asia/Kolkata",
+  "map": {
+    "center": [19.0760, 72.8777],
+    "zoom": 11,
+    "boundingBox": {
+      "minLat": 18.89,
+      "maxLat": 19.30,
+      "minLng": 72.77,
+      "maxLng": 73.00
+    }
+  },
+  "languages": ["mr", "hi", "en"],
+  "defaultLanguageToggle": ["mr", "en"],
+  "wards": ["A", "B", "C", "D", "E", "F/South", "F/North", "G/South", "G/North", "H/East", "H/West", "K/East", "K/West", "L", "M/East", "M/West", "N", "P/South", "P/North", "R/South", "R/Central", "R/North", "S", "T"],
+  "authorities": [
+    {"name": "Childline 1098 (national)", "number": "1098", "verify": false},
+    {"name": "Emergency 112", "number": "112", "verify": false},
+    {"name": "Mumbai Police", "number": "TODO_VERIFY", "verify": true},
+    {"name": "Government Railway Police (GRP)", "number": "TODO_VERIFY", "verify": true},
+    {"name": "RPF for railway stations", "number": "TODO_VERIFY", "verify": true},
+    {"name": "BMC", "number": "TODO_VERIFY", "verify": true},
+    {"name": "Maharashtra Women & Child Development Department", "number": "TODO_VERIFY", "verify": true},
+    {"name": "Mumbai Child Welfare Committees (CWC)", "number": "TODO_VERIFY", "verify": true}
+  ],
+  "rushHourProfile": {
+    "morningPeak": [8, 11],
+    "eveningPeak": [17, 21],
+    "weekendDip": true,
+    "festivalSpikes": ["Ganeshotsav"]
+  }
+}

@@ -16,8 +16,13 @@ const getDistrictForLocation = (longitude, latitude) => {
 };
 
 const generateTrackingId = () => {
-  // Generate 6-digit alphanumeric uppercase ID
-  return crypto.randomBytes(3).toString('hex').toUpperCase();
+  // Generate 12-char ID using safe alphabet (no confusing chars like 0, O, I, l)
+  const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let id = '';
+  for (let i = 0; i < 12; i++) {
+    id += alphabet[Math.floor(Math.random() * alphabet.length)];
+  }
+  return id;
 };
 
 /**
@@ -56,11 +61,9 @@ const ingestTicket = async (ticketData) => {
   });
 
   if (existingTicket) {
-    // [DEV MODE]: Duplicate detection disabled for testing so that every submission
-    // creates a new ticket. In production, this would increment the reportCount.
-    // existingTicket.reportCount += 1;
-    // ...
-    // return { status: 'DUPLICATE_UPDATED', ticket: existingTicket };
+    existingTicket.reportCount += 1;
+    await existingTicket.save();
+    return { status: 'DUPLICATE_UPDATED', ticket: existingTicket };
   }
 
   // 5. No duplicate, create new Case File
