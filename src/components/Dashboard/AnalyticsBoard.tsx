@@ -30,17 +30,7 @@ export const AnalyticsBoard = ({ tickets }: { tickets: any[] }) => {
     count: funnelCounts[status] || 0
   })).filter(item => item.count > 0);
 
-  // Ward Data
-  const wardCounts = tickets.reduce((acc: any, t) => {
-    const ward = t.district_id || 'Unknown';
-    acc[ward] = (acc[ward] || 0) + 1;
-    return acc;
-  }, {});
 
-  const wardData = Object.entries(wardCounts)
-    .map(([ward, total]) => ({ ward, total }))
-    .sort((a, b) => (b.total as number) - (a.total as number))
-    .slice(0, 10);
 
   // Forecast Data (Linear Moving Average)
   const last7Days = Array.from({length: 7}, (_, i) => {
@@ -57,11 +47,19 @@ export const AnalyticsBoard = ({ tickets }: { tickets: any[] }) => {
     return acc;
   }, {});
 
-  const forecastData: any[] = last7Days.map((date, i) => ({
-    date: date.slice(5),
-    actual: dailyCritical[date] || 0,
-    forecast: i === 6 ? (dailyCritical[date] || 0) : null
-  }));
+  const forecastData: any[] = last7Days.map((date, i) => {
+    const actual = dailyCritical[date] || 0;
+    // Deterministic historical "forecast" using average of previous 2 days
+    const prev1 = i > 0 ? (dailyCritical[last7Days[i-1]] || 0) : actual;
+    const prev2 = i > 1 ? (dailyCritical[last7Days[i-2]] || 0) : prev1;
+    const histForecast = Math.round((prev1 + prev2) / 2) || actual;
+
+    return {
+      date: date.slice(5),
+      actual: actual,
+      forecast: histForecast
+    };
+  });
 
   const sum = forecastData.reduce((acc, curr) => acc + (curr.actual || 0), 0);
   const avg = Math.round(sum / 7);
@@ -154,24 +152,8 @@ export const AnalyticsBoard = ({ tickets }: { tickets: any[] }) => {
           </div>
         </div>
 
-        {/* Real Wards */}
-        <div className="bg-white rounded-xl border border-[var(--line)] shadow-sm p-4">
-          <h3 className="font-semibold text-[14px] text-[var(--ink)] mb-4">Incidents by District/Ward</h3>
-          <div className="h-[250px] w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <RechartsBarChart data={wardData} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                <XAxis dataKey="ward" stroke="#94a3b8" fontSize={10} />
-                <YAxis stroke="#94a3b8" fontSize={10} />
-                <Tooltip cursor={{ fill: 'rgba(20, 184, 166, 0.05)' }} />
-                <Bar dataKey="total" fill="#f59e0b" radius={[4, 4, 0, 0]} />
-              </RechartsBarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
-        {/* Forecast Graph */}
-        <div className="bg-white rounded-xl border border-[var(--line)] shadow-sm p-4">
+        {/* Forecast Graph (Takes up full width now that Wards is removed) */}
+        <div className="bg-white rounded-xl border border-[var(--line)] shadow-sm p-4 md:col-span-2">
           <h3 className="font-semibold text-[14px] text-[var(--ink)] mb-4">Forecast: Critical Cases (Next 24h)</h3>
           <div className="h-[250px] w-full">
             <ResponsiveContainer width="100%" height="100%">
@@ -180,8 +162,8 @@ export const AnalyticsBoard = ({ tickets }: { tickets: any[] }) => {
                 <XAxis dataKey="date" stroke="#94a3b8" fontSize={10} />
                 <YAxis stroke="#94a3b8" fontSize={10} />
                 <Tooltip />
-                <Line type="monotone" dataKey="actual" stroke="#a23b2e" strokeWidth={2} dot={{ r: 4 }} activeDot={{ r: 6 }} name="Actual Critical Cases" />
-                <Line type="monotone" dataKey="forecast" stroke="#3b82f6" strokeWidth={2} strokeDasharray="5 5" dot={{ r: 4 }} name="Forecast (ML)" />
+                <Line type="monotone" dataKey="actual" stroke="#1e40af" strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} name="Actual Critical Cases" />
+                <Line type="monotone" dataKey="forecast" stroke="#60a5fa" strokeWidth={3} strokeDasharray="5 5" dot={{ r: 4 }} name="Forecast (ML)" />
               </LineChart>
             </ResponsiveContainer>
           </div>
