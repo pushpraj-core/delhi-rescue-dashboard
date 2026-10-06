@@ -1,15 +1,26 @@
 const mongoose = require('mongoose');
 
 const auditLogSchema = new mongoose.Schema({
+  seq: {
+    type: Number,
+    required: true,
+    unique: true,
+    index: true
+  },
   action: {
     type: String,
     required: true,
-    enum: ['STATUS_UPDATE', 'EVIDENCE_DECRYPTED', 'KHOYA_PAYA_CHECK', 'NOTE_ADDED']
+    enum: [
+      'STATUS_UPDATE', 'EVIDENCE_DECRYPTED', 'NOTE_ADDED',
+      'TICKET_CREATED', 'TICKET_TRANSFERRED', 'TRANSFER_ACCEPTED',
+      'TRANSFER_REJECTED', 'OFFICER_APPROVED', 'OFFICER_REVOKED',
+      'PRIORITY_OVERRIDE', 'KEY_UPLOADED', 'DEMO_LOGIN'
+    ]
   },
   ticketId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Ticket',
-    required: true
+    required: false  // Some actions (like officer approval) don't have a ticketId
   },
   actorId: {
     type: String,
@@ -24,7 +35,7 @@ const auditLogSchema = new mongoose.Schema({
   },
   timestamp: {
     type: Date,
-    default: Date.now
+    required: true
   },
   previousHash: {
     type: String,
