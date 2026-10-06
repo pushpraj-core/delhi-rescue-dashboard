@@ -1,35 +1,97 @@
-# Threat Model: Raksha Mumbai
+# Threat Model — Raksha MMR
 
-## 1. Overview
-Raksha Mumbai handles extremely sensitive data regarding vulnerable children (trafficking, abuse, labor). A leak of this data could tip off traffickers, endanger the reporting citizen, or traumatize the victim. 
+## Architecture Overview
 
-## 2. Adversaries
-- **State-level or Organized Crime**: Trafficking rings with resources to attempt database exfiltration or intercept network traffic.
-- **Insider Threat**: Corrupt officials attempting to access case files out of jurisdiction or tamper with evidence.
-- **Opportunistic Attackers**: Script kiddies looking for exposed S3 buckets or unauthenticated APIs.
+```
+Citizen (PWA) → [HTTPS] → Express API → MongoDB
+                           ↓ JWT Auth
+Officer (Dashboard) → [HTTPS + WSS] → Express API
+                                       ↓ proxy
+                               ML Service (FastAPI)
+```
 
-## 3. Threat Vectors & Mitigations
+## Implemented Security Controls
 
-### 3.1 Vector: Device Compromise (Citizen)
-*Risk*: Attacker seizes citizen's phone to find unencrypted photos of rescue targets.
-*Mitigation*: 
-- **Zero-Leak Processing**: TensorFlow.js (BlazeFace) runs entirely in RAM. Faces are blurred *before* the canvas is converted to a Blob. 
-- **Memory Flushing**: Canvas pixels are aggressively overwritten with `#000000` and dimensions reset to `0x0` to force garbage collection of raw buffers.
-- **Client-Side Encryption**: The image is encrypted using the Nodal Officer's RSA Public Key *before* it touches IndexedDB (if offline) or the network.
+### Authentication & Authorization
+| Control | Status | Implementation |
+|---------|--------|---------------|
+| Google OAuth 2.0 | ✅ Implemented | `google-auth-library` verifies ID tokens server-side |
+| JWT session tokens | ✅ Implemented | 8-hour expiry, signed with `JWT_SECRET` env var |
+| No fallback secret | ✅ Fixed | Server refuses to start without `JWT_SECRET` (except in `NODE_ENV=test`) |
+| Pending user approval | ✅ Implemented | New Google users get `role: pending`, cannot access any protected route |
+| ADMIN_EMAILS bootstrap | ✅ Implemented | Comma-separated list seeds initial admin accounts |
+| Role-based access (RBAC) | ✅ Implemented | `requireRole(['admin', 'officer'])` middleware on all sensitive routes |
+| Jurisdiction scoping | ✅ Implemented | Officers only see tickets from their assigned jurisdiction |
+| DEMO_MODE | ✅ Implemented | Off by default; clearly labelled in UI; `POST /api/auth/demo-login` |
 
-### 3.2 Vector: Database Exfiltration
-*Risk*: Attacker dumps MongoDB.
-*Mitigation*: 
-- **Envelope Encryption**: Images are encrypted with AES-GCM (256-bit). The AES key is wrapped with RSA-OAEP. The DB only contains ciphertexts and wrapped keys. Without the Nodal Officer's physical private key (kept securely in their browser/hardware), the data is cryptographically useless.
+### Data Protection
+| Control | Status | Implementation |
+|---------|--------|---------------|
+| E2EE (AES-256-GCM + RSA-OAEP) | ✅ Implemented | Evidence encrypted on citizen's device; only matched officer can decrypt |
+| Officer key matching | ✅ Fixed | `decryptImagePayload` matches `wrappedKey` by `officerEmail`, never index [0] |
+| On-device face blur | ✅ Implemented | Pixelation with 30% padding before encryption |
+| No plaintext evidence stored | ✅ Implemented | MongoDB stores only ciphertext + wrapped AES keys |
+| Idempotency | ✅ Implemented | `Idempotency-Key` header prevents duplicate submissions |
 
-### 3.3 Vector: Insider Tampering
-*Risk*: A corrupt officer alters case statuses to "Closed" without action, or modifies audit logs to hide tracks.
-*Mitigation*: 
-- **Cryptographic Ledger**: The `AuditLog` collection uses SHA-256 chaining. `current_hash = SHA256(previous_hash + payload)`. If a DBA deletes a row, the chain breaks. The UI features a "Verify Ledger Integrity" button that recalculates the chain in real-time.
-- **Strict State Machine**: Tickets can only progress through defined states (e.g. `REPORTED` -> `VERIFIED` -> `DISPATCHED`).
+### Audit Trail
+| Control | Status | Implementation |
+|---------|--------|---------------|
+| Tamper-evident hash chain | ✅ Implemented | SHA-256 of canonical JSON `{seq, action, ticketId, actorId, actorRole, details, timestamp, prevHash}` |
+| Monotonic sequence numbers | ✅ Implemented | Atomic `seq` field, no gaps |
+| Verify endpoint | ✅ Implemented | `GET /api/tickets/audit/verify` recomputes all hashes, returns `{valid, brokenAtSeq}` |
+| Redacted request bodies | ✅ Implemented | `body: '[REDACTED]'` in audit details, never raw free text |
+| Post-success logging | ✅ Implemented | Audit entry written AFTER the action succeeds |
 
-### 3.4 Vector: AI/Deepfake Poisoning
-*Risk*: Attackers submit fake AI-generated images to exhaust police resources.
-*Mitigation*: 
-- **dHash (Perceptual Hashing)**: A perceptual hash is calculated on-device at the moment of capture. 
-- **Confidence Scores**: The ML model scores incoming images based on metadata heuristics and facial detection confidence. Low confidence routes to a separate queue.
+### Network & Transport
+| Control | Status | Implementation |
+|---------|--------|---------------|
+| HTTPS (TLS) | ⚠️ Deployment-dependent | Handled by Vercel/Render reverse proxy |
+| Socket.io JWT auth | ✅ Implemented | Connection requires valid JWT; emits `{id, status}` only, never encrypted payloads |
+| CORS | ⚠️ Default Express | Should be restricted to specific origins in production |
+| Rate limiting | ❌ Not implemented | Should add `express-rate-limit` for production |
+
+## Known Limitations
+
+### Browser-Held Keys
+- **Risk**: Officer private keys are stored in the browser's IndexedDB, protected only by PBKDF2-derived AES-GCM encryption with a user-chosen passphrase.
+- **Mitigation**: Passphrase-protected backup download and import. In production, integrate with an HSM or browser-based FIDO2/WebAuthn key store.
+- **Impact**: If the browser storage is cleared or the device is compromised, the officer loses access to evidence they haven't yet decrypted.
+
+### No HSM Integration
+- **Risk**: AES and RSA keys are generated in software, not in hardware security modules.
+- **Mitigation**: Acceptable for a hackathon prototype. Production deployment for a government agency MUST use HSM-backed key management (e.g., AWS CloudHSM, Azure Key Vault).
+
+### Synthetic Data
+- **Risk**: All ticket data in the prototype is synthetic. No real-world validation of the system's behaviour under actual operational conditions.
+- **Mitigation**: Clearly labelled `isSynthetic: true` in the database and `SYNTHETIC DEMO DATA` banners in the UI.
+
+### In-Memory Idempotency Store
+- **Risk**: Idempotency keys are stored in process memory, lost on restart.
+- **Mitigation**: Use Redis in production. Current implementation is sufficient for single-instance demo.
+
+### Single MongoDB Instance
+- **Risk**: No replication or backup.
+- **Mitigation**: Use MongoDB Atlas with automatic backups for production.
+
+### No Certificate Pinning
+- **Risk**: Man-in-the-middle attacks possible if TLS is misconfigured.
+- **Mitigation**: The PWA runs over HTTPS. Certificate pinning is not supported in standard web browsers.
+
+## Threat Scenarios
+
+| Threat | Mitigation | Residual Risk |
+|--------|-----------|---------------|
+| Unauthorized officer views evidence | E2EE with per-officer key wrapping; role/jurisdiction checks | Key compromise if browser is hacked |
+| Tampered audit trail | SHA-256 hash chain with verify endpoint | Could be circumvented with direct DB access |
+| Fake report spam | Idempotency-Key, geofence validation, duplicate detection | No CAPTCHA on citizen endpoint |
+| Officer impersonation | Google OAuth + admin approval flow | Compromised Google account |
+| Data exfiltration via Socket.io | JWT-authenticated; emits only `{id, status}`, never payloads | N/A |
+| ML model manipulation | ML behind `ML_TRIAGE_ENABLED` flag, not used in live triage | N/A (rule-based triage is deterministic) |
+
+## Regulatory Compliance Notes
+
+| Regulation | Status |
+|-----------|--------|
+| JJ Act (identity protection of children) | ✅ Face blur, E2EE, officer-only decryption, no public photos |
+| DPDP Act (data protection) | ⚠️ Needs legal review for consent flow and data retention policy |
+| IT Act 2000 (electronic records) | ✅ Audit trail with hash chain qualifies as tamper-evident electronic record |

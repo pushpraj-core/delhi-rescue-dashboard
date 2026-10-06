@@ -13,8 +13,17 @@ const userSchema = new mongoose.Schema({
   },
   role: {
     type: String,
-    enum: ['officer', 'field_team', 'ngo', 'admin'],
-    required: true
+    enum: ['officer', 'field_team', 'ngo', 'admin', 'pending'],
+    required: true,
+    default: 'pending'
+  },
+  jurisdiction: {
+    type: String,
+    default: null  // e.g. 'MCGM', 'THANE' — set by admin on approval
+  },
+  phone: {
+    type: String,
+    default: null  // For SMS alerts, admin-managed
   },
   publicKeyJwk: {
     type: Object,
