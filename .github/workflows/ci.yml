@@ -21,7 +21,7 @@ jobs:
       run: npm ci
 
     - name: Install Backend Dependencies
-      run: npm ci --prefix backend
+      run: npm install --no-audit --no-fund --prefix backend
 
     - name: Lint Frontend
       run: npm run lint
