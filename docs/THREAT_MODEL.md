@@ -19,10 +19,9 @@ Officer (Dashboard) → [HTTPS + WSS] → Express API
 | JWT session tokens | ✅ Implemented | 8-hour expiry, signed with `JWT_SECRET` env var |
 | No fallback secret | ✅ Fixed | Server refuses to start without `JWT_SECRET` (except in `NODE_ENV=test`) |
 | Pending user approval | ✅ Implemented | New Google users get `role: pending`, cannot access any protected route |
-| ADMIN_EMAILS bootstrap | ✅ Implemented | Comma-separated list seeds initial admin accounts |
+| Domain whitelisting | ✅ Implemented | Users signing in with `@iiitnr.edu.in` bypass pending status and become admins automatically |
 | Role-based access (RBAC) | ✅ Implemented | `requireRole(['admin', 'officer'])` middleware on all sensitive routes |
 | Jurisdiction scoping | ✅ Implemented | Officers only see tickets from their assigned jurisdiction |
-| DEMO_MODE | ✅ Implemented | Off by default; clearly labelled in UI; `POST /api/auth/demo-login` |
 
 ### Data Protection
 | Control | Status | Implementation |
