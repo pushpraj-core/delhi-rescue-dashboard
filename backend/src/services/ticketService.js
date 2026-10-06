@@ -1,10 +1,10 @@
 const Ticket = require('../models/Ticket');
 const jurisdictions = require('../../../config/jurisdictions.json');
 const crypto = require('crypto');
+const { computeTriage } = require('./triageService');
 
 /**
  * Matches a [lng, lat] coordinate to an MMR jurisdiction using bounding box checks.
- * Returns the jurisdiction ID (e.g. "MCGM", "THANE") or null if outside all jurisdictions.
  */
 const getJurisdictionForLocation = (longitude, latitude) => {
   for (const jur of jurisdictions.jurisdictions) {
@@ -21,7 +21,7 @@ const getJurisdictionForLocation = (longitude, latitude) => {
 };
 
 /**
- * Checks if coordinates are within the MMR region at all.
+ * Checks if coordinates are within the MMR region.
  */
 const isInMMR = (longitude, latitude) => {
   const b = jurisdictions.region.bounds;
@@ -58,79 +58,20 @@ const ingestTicket = async (ticketData) => {
   const district_id = getJurisdictionForLocation(longitude, latitude);
   if (!district_id) {
     throw new Error(
-      'LOCATION_UNRESOLVED: Coordinates are within MMR but could not be matched to a specific jurisdiction. ' +
-      'This may indicate a gap in boundary data. Report has been rejected — please try again or contact support.'
+      'LOCATION_UNRESOLVED: Coordinates are within MMR but could not be matched to a specific jurisdiction.'
     );
   }
 
   // 3. Validate category
   const validCategories = jurisdictions.categories;
   if (!validCategories.includes(user_category)) {
-    throw new Error(`INVALID_CATEGORY: "${user_category}" is not a valid category. Valid: ${validCategories.join(', ')}`);
+    throw new Error(`INVALID_CATEGORY: "${user_category}" is not a valid category.`);
   }
 
   // 4. Time Window: Last 2 hours
   const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000);
 
-  // 5. Triage Logic Setup
-  let initialStatus = 'REPORTED';
-  let priority = 'Medium';
-  
-  if (isEmergency) {
-    priority = 'Critical';
-  } else {
-    // Attempt ML prediction (optional, behind ML_TRIAGE_ENABLED)
-    const mlEnabled = process.env.ML_TRIAGE_ENABLED === 'true';
-    const mlUrl = process.env.ML_URL || 'http://localhost:8000';
-    
-    if (mlEnabled) {
-      try {
-        const now = new Date();
-        const payload = {
-          hour: now.getHours(),
-          day_of_week: now.getDay(),
-          month: now.getMonth() + 1,
-          lat: latitude,
-          lng: longitude,
-          ward: district_id,
-          category: user_category,
-          confidence_score: confidence_score
-        };
-        
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 1500);
-        
-        const response = await fetch(`${mlUrl}/triage/predict`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-          signal: controller.signal
-        });
-        clearTimeout(timeoutId);
-        
-        if (response.ok) {
-          const data = await response.json();
-          if (data.urgency === 1) priority = 'Critical';
-          else if (data.urgency === 2) priority = 'High';
-          else if (data.urgency === 3) priority = 'Medium';
-          else priority = 'Low';
-          console.log(`[ML Triage] Success: Urgency ${data.urgency} -> ${priority}`);
-        } else {
-          throw new Error(`ML API returned ${response.status}`);
-        }
-      } catch (err) {
-        console.warn(`[ML Triage] Failed or timed out. Falling back to heuristic. Error: ${err.message}`);
-        if (confidence_score >= 80) priority = 'High';
-        else if (confidence_score < 50) priority = 'Low';
-      }
-    } else {
-      // Heuristic fallback when ML is not enabled
-      if (confidence_score >= 80) priority = 'High';
-      else if (confidence_score < 50) priority = 'Low';
-    }
-  }
-
-  // 6. Find duplicate within 50 meters that is NOT closed
+  // 5. Find duplicate within 50 meters that is NOT closed
   const existingTicket = await Ticket.findOne({
     createdAt: { $gte: twoHoursAgo },
     status: { $nin: ['CLOSED', 'REJECTED'] },
@@ -147,20 +88,51 @@ const ingestTicket = async (ticketData) => {
 
   if (existingTicket) {
     existingTicket.reportCount += 1;
+
+    // Re-triage with updated reportCount
+    const triage = computeTriage({
+      isEmergency: existingTicket.isEmergency || isEmergency,
+      category: existingTicket.user_category,
+      hour: new Date().getHours(),
+      reportCount: existingTicket.reportCount,
+      latitude,
+      longitude,
+      confidenceScore: confidence_score
+    });
+
+    // Escalate priority if triage says higher
+    const priorityRank = { 'Critical': 4, 'High': 3, 'Medium': 2, 'Low': 1 };
+    if (priorityRank[triage.priority] > priorityRank[existingTicket.priority]) {
+      existingTicket.priority = triage.priority;
+      existingTicket.triageReasons = triage.reasons;
+      existingTicket.triageScore = triage.score;
+    }
+
     await existingTicket.save();
     return { status: 'DUPLICATE_UPDATED', ticket: existingTicket };
   }
 
-  // 7. No duplicate, create new Case File
+  // 6. Triage: transparent rule-based priority
+  const now = new Date();
+  const triage = computeTriage({
+    isEmergency,
+    category: user_category,
+    hour: now.getHours(),
+    reportCount: 1,
+    latitude,
+    longitude,
+    confidenceScore: confidence_score
+  });
+
+  // 7. Create new Case File
   const trackingId = generateTrackingId();
-  
-  const slaHours = {
-    'Critical': 1,
-    'High': 4,
-    'Medium': 12,
-    'Low': 24
-  };
-  const slaBreachAt = new Date(Date.now() + slaHours[priority] * 60 * 60 * 1000);
+
+  const slaHours = { 'Critical': 1, 'High': 4, 'Medium': 12, 'Low': 24 };
+  const slaBreachAt = new Date(Date.now() + slaHours[triage.priority] * 60 * 60 * 1000);
+
+  // Check railway proximity for GRP/RPF flagging
+  const { nearestStation } = require('./triageService');
+  const stationCheck = nearestStation(latitude, longitude);
 
   const newTicket = new Ticket({
     location: {
@@ -175,8 +147,11 @@ const ingestTicket = async (ticketData) => {
     user_category,
     tags: tags || [],
     isEmergency: isEmergency || false,
-    status: initialStatus,
-    priority,
+    status: 'REPORTED',
+    priority: triage.priority,
+    triageScore: triage.score,
+    triageReasons: triage.reasons,
+    railwayJurisdiction: !!stationCheck,
     slaBreachAt
   });
 

@@ -97,6 +97,14 @@ const ticketSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
+  triageScore: {
+    type: Number,
+    default: 0
+  },
+  triageReasons: {
+    type: [String],
+    default: []
+  },
   isSynthetic: {
     type: Boolean,
     default: false
