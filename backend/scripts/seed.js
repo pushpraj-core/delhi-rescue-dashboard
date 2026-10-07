@@ -167,9 +167,29 @@ const runSeed = async () => {
 
         // Assign to a MCGM ward if jurisdiction is MCGM
         let wardId = jurId;
+        let assignedTeam = null;
         if (jurId === 'MCGM' && jurBox.wards.length > 0) {
           const wardIdx = Math.floor(seededRng() * jurBox.wards.length);
           wardId = `MCGM-${jurBox.wards[wardIdx]}`;
+        }
+        
+        if (status !== 'REPORTED') {
+          // Find a valid team for this jurisdiction
+          const validTeams = teams.filter(t => t.name.includes(jurId === 'MCGM' ? 'Mumbai' : jurBox.name));
+          if (validTeams.length > 0) {
+            assignedTeam = validTeams[Math.floor(seededRng() * validTeams.length)].name;
+          }
+        }
+
+        // Mock Triage Reasons
+        const triageReasons = [];
+        let triageScore = 0;
+        if (priority === 'Critical') {
+          triageReasons.push('Night-time Report', 'High Confidence');
+          triageScore = 95;
+        } else if (priority === 'High') {
+          triageReasons.push('Near Railway Station');
+          triageScore = 75;
         }
 
         tickets.push({
@@ -191,11 +211,14 @@ const runSeed = async () => {
           isEmergency: priority === 'Critical' && seededRng() > 0.5,
           priority,
           status,
+          assigned_team: assignedTeam,
           createdAt,
           slaBreachAt,
           escalated: Date.now() > slaBreachAt.getTime(),
           railwayJurisdiction: seededRng() > 0.92,
-          isSynthetic: true
+          isSynthetic: true,
+          triageReasons,
+          triageScore
         });
       }
     }

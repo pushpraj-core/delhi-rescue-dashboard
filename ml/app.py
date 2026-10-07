@@ -9,11 +9,11 @@ app = FastAPI(title="Raksha Mumbai ML Service")
 
 # Load models and encoders globally
 try:
-    triage_model = joblib.load('ml/artifacts/triage_model.pkl')
-    le_ward = joblib.load('ml/artifacts/le_ward.pkl')
-    le_category = joblib.load('ml/artifacts/le_category.pkl')
-    hotspot_model = joblib.load('ml/artifacts/hotspot_model.pkl')
-    hotspot_features = pd.read_csv('ml/artifacts/hotspot_latest_features.csv')
+    triage_model = joblib.load('artifacts/triage_model.pkl')
+    le_ward = joblib.load('artifacts/le_ward.pkl')
+    le_category = joblib.load('artifacts/le_category.pkl')
+    hotspot_model = joblib.load('artifacts/hotspot_model.pkl')
+    hotspot_features = pd.read_csv('artifacts/hotspot_latest_features.csv')
 except Exception as e:
     print(f"Warning: Models not fully loaded. Run training scripts first. {e}")
 

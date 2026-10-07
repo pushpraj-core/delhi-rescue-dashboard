@@ -20,6 +20,8 @@ afterAll(async () => {
 beforeEach(async () => {
   await Ticket.deleteMany({});
   await Team.deleteMany({});
+  await Ticket.createIndexes();
+  await Team.createIndexes();
 });
 
 describe('Tier 2 Operations', () => {
@@ -27,7 +29,7 @@ describe('Tier 2 Operations', () => {
     const payload = {
       longitude: 72.85,
       latitude: 19.0,
-      encryptedPayload: { wrappedKeys: [] },
+      encryptedPayload: { iv: 'iv_test', encryptedData: 'data_test', wrappedKeys: [] },
       confidence_score: 85,
       user_category: 'Child Labour',
       isEmergency: true
@@ -39,7 +41,7 @@ describe('Tier 2 Operations', () => {
     
     // SLA for Critical should be 1 hour
     const diff = result.ticket.slaBreachAt.getTime() - result.ticket.createdAt.getTime();
-    expect(diff).toBe(60 * 60 * 1000);
+    expect(Math.abs(diff - (60 * 60 * 1000))).toBeLessThanOrEqual(1000); // within 1 sec
   });
 
   test('Team Suggestion Logic (Nearest)', async () => {

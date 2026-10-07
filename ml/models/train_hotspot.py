@@ -12,7 +12,7 @@ def get_h3_index(lat, lng, resolution=8):
 
 def train_hotspot_model():
     print("Loading data for hotspot forecast...")
-    df = pd.read_csv('ml/data/raw/mumbai_synthetic.csv')
+    df = pd.read_csv('data/raw/mumbai_synthetic.csv')
     df['incident_time'] = pd.to_datetime(df['incident_time'])
     df['date'] = df['incident_time'].dt.date
     
@@ -60,14 +60,14 @@ def train_hotspot_model():
     mae = mean_absolute_error(y_test, preds)
     print(f"Hotspot Forecast MAE: {mae:.4f}")
     
-    with open('ml/artifacts/hotspot_metrics.txt', 'w') as f:
+    with open('artifacts/hotspot_metrics.txt', 'w') as f:
         f.write(f"MAE: {mae:.4f}\n")
     
-    joblib.dump(model, 'ml/artifacts/hotspot_model.pkl')
+    joblib.dump(model, 'artifacts/hotspot_model.pkl')
     
     # Save the most recent data to use as features for the API
     latest_data = merged.groupby('h3_res8').last().reset_index()
-    latest_data.to_csv('ml/artifacts/hotspot_latest_features.csv', index=False)
+    latest_data.to_csv('artifacts/hotspot_latest_features.csv', index=False)
     print("Hotspot model and features saved.")
 
 if __name__ == '__main__':

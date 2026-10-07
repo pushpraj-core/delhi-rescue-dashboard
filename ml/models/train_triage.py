@@ -11,7 +11,7 @@ import seaborn as sns
 
 def train_triage_model():
     print("Loading data...")
-    df = pd.read_csv('ml/data/raw/mumbai_synthetic.csv')
+    df = pd.read_csv('data/raw/mumbai_synthetic.csv')
     
     # Feature Engineering
     features = ['hour', 'day_of_week', 'month', 'lat', 'lng', 'ward', 'category', 'confidence_score']
@@ -28,9 +28,9 @@ def train_triage_model():
     X['category'] = le_category.fit_transform(X['category'])
     
     # Save encoders
-    os.makedirs('ml/artifacts', exist_ok=True)
-    joblib.dump(le_ward, 'ml/artifacts/le_ward.pkl')
-    joblib.dump(le_category, 'ml/artifacts/le_category.pkl')
+    os.makedirs('artifacts', exist_ok=True)
+    joblib.dump(le_ward, 'artifacts/le_ward.pkl')
+    joblib.dump(le_category, 'artifacts/le_category.pkl')
     
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
     
@@ -52,7 +52,7 @@ def train_triage_model():
     report = classification_report(y_test, y_pred)
     print("Classification Report:\n", report)
     
-    with open('ml/artifacts/triage_metrics.txt', 'w') as f:
+    with open('artifacts/triage_metrics.txt', 'w') as f:
         f.write("Classification Report:\n")
         f.write(report)
         
@@ -63,19 +63,19 @@ def train_triage_model():
     plt.xlabel('Predicted Urgency')
     plt.ylabel('True Urgency')
     plt.title('Triage Model Confusion Matrix')
-    plt.savefig('ml/artifacts/triage_confusion_matrix.png')
+    plt.savefig('artifacts/triage_confusion_matrix.png')
     plt.close()
     
     # Feature Importance
     lgb.plot_importance(clf, importance_type='split', max_num_features=10)
     plt.title('Feature Importance')
     plt.tight_layout()
-    plt.savefig('ml/artifacts/triage_feature_importance.png')
+    plt.savefig('artifacts/triage_feature_importance.png')
     plt.close()
     
     # Save model
-    joblib.dump(clf, 'ml/artifacts/triage_model.pkl')
-    print("Model and artifacts saved to ml/artifacts/")
+    joblib.dump(clf, 'artifacts/triage_model.pkl')
+    print("Model and artifacts saved to artifacts/")
 
 if __name__ == '__main__':
     train_triage_model()
