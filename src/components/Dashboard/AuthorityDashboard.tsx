@@ -8,6 +8,8 @@ import { MapViewer } from './MapViewer';
 import { DispatchBoard } from './DispatchBoard';
 import { AnalyticsBoard } from './AnalyticsBoard';
 import { ReportGenerator } from './ReportGenerator';
+import { AdminPanel } from './AdminPanel';
+import { KeyVaultModal } from './KeyVaultModal';
 
 interface Ticket {
   _id: string;
@@ -25,6 +27,8 @@ interface Ticket {
   priority?: string;
   trackingId?: string;
   isSynthetic?: boolean;
+  triageReasons?: string[];
+  triageScore?: number;
 }
 
 interface AuditLogEntry {
@@ -47,19 +51,21 @@ export const AuthorityDashboard: React.FC = () => {
   const [isGoogleAuthenticated, setIsGoogleAuthenticated] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [officerEmail, setOfficerEmail] = useState<string>('');
+  const [userRole, setUserRole] = useState<string>('');
   const [googleAuthError, setGoogleAuthError] = useState<string | null>(null);
   const [decryptedImages, setDecryptedImages] = useState<Record<string, string>>({});
   const [decryptingIds, setDecryptingIds] = useState<Record<string, boolean>>({});
   const [noteInputs, setNoteInputs] = useState<Record<string, string>>({});
   const [auditLogs, setAuditLogs] = useState<AuditLogEntry[]>([]);
   const [toast, setToast] = useState<{message: string, type: 'success'|'error'} | null>(null);
+  const [showKeyVault, setShowKeyVault] = useState(false);
 
   const showToast = (message: string, type: 'success'|'error' = 'success') => {
     setToast({ message, type });
     setTimeout(() => setToast(null), 3000);
   };
   
-  const [activeTab, setActiveTab] = useState<'map' | 'board' | 'list' | 'audit' | 'analytics'>('board');
+  const [activeTab, setActiveTab] = useState<'map' | 'board' | 'list' | 'audit' | 'analytics' | 'admin'>('board');
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -155,6 +161,7 @@ export const AuthorityDashboard: React.FC = () => {
       
       setAuthToken(data.token);
       if (data.user?.email) setOfficerEmail(data.user.email);
+      if (data.user?.role) setUserRole(data.user.role);
       
       // Upload public key
       const keys = await getOrCreateOfficerKeys();
@@ -179,6 +186,7 @@ export const AuthorityDashboard: React.FC = () => {
       
       setAuthToken(data.token);
       if (data.user?.email) setOfficerEmail(data.user.email);
+      if (data.user?.role) setUserRole(data.user.role);
       const keys = await getOrCreateOfficerKeys();
       await apiFetch('/api/auth/keys/upload', {
         method: 'POST',
@@ -349,6 +357,9 @@ export const AuthorityDashboard: React.FC = () => {
           
           <div className="flex flex-wrap items-center gap-3">
             <ReportGenerator tickets={tickets} />
+            <button onClick={() => setShowKeyVault(true)} className="px-4 py-2 bg-[var(--saffron)]/10 border border-[var(--saffron)]/30 text-[var(--saffron)] text-[13px] font-bold uppercase tracking-wider rounded-lg hover:bg-[var(--saffron)] hover:text-white transition shadow-sm flex items-center gap-2">
+              <Key className="w-4 h-4" /> Key Vault
+            </button>
             <button onClick={fetchTickets} className="px-4 py-2 bg-white/60 backdrop-blur border border-[var(--line)] text-[13px] font-semibold rounded-lg hover:bg-white transition shadow-sm flex items-center gap-2">
               <Activity className="w-4 h-4" /> Sync Data
             </button>
@@ -419,6 +430,14 @@ export const AuthorityDashboard: React.FC = () => {
           >
             <Activity className="w-4 h-4" /> Analytics
           </button>
+          {userRole === 'admin' && (
+            <button
+              onClick={() => setActiveTab('admin')}
+              className={`px-5 py-3 font-semibold text-[14px] flex items-center gap-2 border-b-[2px] transition-colors ${activeTab === 'admin' ? 'border-[var(--teal)] text-[var(--ink)]' : 'border-transparent text-[var(--ink-soft)] hover:text-[var(--ink)] hover:bg-[var(--line)]'}`}
+            >
+              <Shield className="w-4 h-4" /> Admin
+            </button>
+          )}
         </div>
 
         {/* Main Content Area */}
@@ -554,8 +573,29 @@ export const AuthorityDashboard: React.FC = () => {
                         </div>
                       </div>
 
+                      {/* Triage & AI Transparency */}
+                      {(ticket.triageReasons && ticket.triageReasons.length > 0) && (
+                        <div className="mt-2 p-3 bg-[var(--paper-2)] border border-[var(--line)] rounded-[3px]">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="font-mono text-[10px] text-[var(--teal)] font-bold tracking-widest uppercase flex items-center gap-1">
+                              <Activity className="w-3 h-3" /> AI Triage Reasons
+                            </span>
+                            <span className="font-mono text-[10px] font-bold bg-white px-2 py-0.5 border border-[var(--line)] rounded-full text-[var(--ink)]">
+                              Score: {ticket.triageScore || 0}
+                            </span>
+                          </div>
+                          <div className="flex flex-wrap gap-1.5">
+                            {ticket.triageReasons.map((reason, i) => (
+                              <span key={i} className="px-2 py-1 bg-white text-[10px] border border-[var(--line-strong)] text-[var(--ink)] rounded-[2px] shadow-sm">
+                                {reason}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
                       {/* Internal Notes */}
-                      <div className="mt-4 border-[1.5px] border-[var(--line-strong)] rounded-[3px] overflow-hidden">
+                      <div className="mt-3 border-[1.5px] border-[var(--line-strong)] rounded-[3px] overflow-hidden">
                         <div className="bg-[var(--paper-2)] px-3 py-2 flex items-center gap-2 border-b border-[var(--line-strong)]">
                           <MessageSquare className="w-3.5 h-3.5 text-[var(--ink-soft)]" />
                           <span className="font-mono text-[10px] font-bold text-[var(--ink-soft)] uppercase tracking-widest">Case Notes ({ticket.notes?.length || 0})</span>
@@ -707,6 +747,10 @@ export const AuthorityDashboard: React.FC = () => {
         {activeTab === 'analytics' && (
           <AnalyticsBoard tickets={tickets} />
         )}
+
+        {activeTab === 'admin' && userRole === 'admin' && (
+          <AdminPanel />
+        )}
       </div>
 
       {/* Global Toast */}
@@ -718,6 +762,8 @@ export const AuthorityDashboard: React.FC = () => {
           <span className="text-[13px] font-semibold">{toast.message}</span>
         </div>
       )}
+
+      {showKeyVault && <KeyVaultModal onClose={() => setShowKeyVault(false)} />}
     </div>
   );
 };
