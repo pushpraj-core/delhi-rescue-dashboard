@@ -4,10 +4,10 @@ import { CitizenCapture } from './components/CitizenCapture/CitizenCapture';
 import { AuthorityDashboard } from './components/Dashboard/AuthorityDashboard';
 import { Landing } from './components/Landing/Landing';
 import { TrackReport } from './components/TrackReport/TrackReport';
-import { WifiOff, RefreshCw, ArrowLeft, ShieldCheck, Map } from 'lucide-react';
+import { WifiOff, RefreshCw, ArrowLeft, Download } from 'lucide-react';
 import { syncOfflineReports } from './utils/db';
 
-const Header = () => {
+const Header = ({ onInstallClick, showInstall }: { onInstallClick: () => void, showInstall: boolean }) => {
   const location = useLocation();
   const isLanding = location.pathname === '/';
 
@@ -24,7 +24,15 @@ const Header = () => {
           Raksha <span className="text-teal-600">PWA</span>
         </Link>
       </div>
-      <div className="flex gap-2">
+      <div className="flex gap-2 items-center">
+        {showInstall && (
+          <button 
+            onClick={onInstallClick}
+            className="px-3 py-1.5 text-sm font-bold rounded-md bg-[var(--teal)] text-white hover:bg-[var(--teal)]/90 transition shadow-sm flex items-center gap-1.5 mr-2"
+          >
+            <Download className="w-4 h-4" /> Install App
+          </button>
+        )}
         {location.pathname !== '/authority' && (
           <>
             <Link
@@ -55,6 +63,7 @@ const Header = () => {
 function App() {
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
 
   useEffect(() => {
     const handleOnline = async () => {
@@ -82,11 +91,28 @@ function App() {
       handleOnline();
     }
 
+    const handleBeforeInstallPrompt = (e: Event) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
     };
   }, []);
+
+  const handleInstallClick = async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === 'accepted') {
+      setDeferredPrompt(null);
+    }
+  };
 
   return (
     <BrowserRouter>
@@ -103,7 +129,7 @@ function App() {
           </div>
         )}
 
-        <Header />
+        <Header onInstallClick={handleInstallClick} showInstall={!!deferredPrompt} />
         
         <main className="flex-1">
           <Routes>

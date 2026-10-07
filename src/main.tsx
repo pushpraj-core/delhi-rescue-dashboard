@@ -5,6 +5,10 @@ import App from './App.tsx'
 import './i18n'
 
 import { GoogleOAuthProvider } from '@react-oauth/google';
+import { registerSW } from 'virtual:pwa-register';
+
+// Register service worker for PWA
+registerSW({ immediate: true });
 
 // Fallback to a placeholder if the env var is missing during development
 const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || '1024881864946-egcokl5t9tlt37duqpl3j27pfdvvr6bv.apps.googleusercontent.com';

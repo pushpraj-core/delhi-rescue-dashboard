@@ -88,15 +88,24 @@ const TicketCard = ({ ticket, onClick, onStatusChange, onTeamAssign, availableTe
         <h4 className="font-display font-semibold text-[var(--ink)] text-[15px] mb-3 leading-tight cursor-pointer" onClick={onClick}>{ticket.user_category}</h4>
       </div>
 
-      {/* Team Badge – always visible if a team is assigned */}
-      {ticket.assigned_team && (
-        <div className="flex items-center gap-1.5 mb-3 px-2 py-1.5 rounded-lg bg-[var(--teal)]/10 border border-[var(--teal)]/20">
-          <Users className="w-3.5 h-3.5 text-[var(--teal)]" />
-          <span className="text-[11px] font-semibold text-[var(--teal)] truncate">{ticket.assigned_team}</span>
+      {/* NGO / Field Handoff Pipeline */}
+      <div className="mb-3">
+        <div className="flex items-center gap-1.5 mb-1 text-[10px] font-mono font-bold text-[var(--ink-soft)] uppercase tracking-wider">
+          <Users className="w-3 h-3" /> Handoff / Assign
         </div>
-      )}
-
-      {/* Auto-Dispatch takes care of team assignment, we just display it above */}
+        <select
+          value={ticket.assigned_team || ''}
+          onChange={(e) => onTeamAssign(ticket._id, e.target.value)}
+          className={`w-full text-[11px] font-semibold p-1.5 rounded-lg border ${ticket.assigned_team ? 'bg-[var(--teal)]/10 text-[var(--teal)] border-[var(--teal)]/30' : 'bg-white/50 text-[var(--ink)] border-[var(--line)]'} outline-none cursor-pointer transition-colors`}
+        >
+          <option value="">-- Unassigned --</option>
+          {availableTeams.map((team, idx) => (
+            <option key={team._id || idx} value={team.name}>
+              {team.name} ({team.type})
+            </option>
+          ))}
+        </select>
+      </div>
       
       <div className="flex justify-between items-center mt-3 pt-3 border-t border-[var(--line)]">
         <div className="flex items-center gap-1 text-[11px] font-semibold text-[var(--ink-soft)] tracking-wider cursor-pointer" onClick={onClick}>
